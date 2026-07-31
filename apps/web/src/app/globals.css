@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   AUREA — tokens do design system
+   Origem: ADR-002 (direção visual) · refs-base titanintake.com + oevra.com
+   Ideia organizadora: a escala de triagem é a espinha narrativa da landing.
+   ========================================================================== */
+
+@theme {
+  /* --- Paleta: sai da própria escala de classificação do produto --- */
+  --color-creme: #fbf9ef;
+  --color-creme-fundo: #f4f1e2;
+  --color-verde-profundo: #1c2b21;
+  --color-verde-profundo-alto: #16221a;
+  /* Mesmo verde do campo da hero — o verde do site é um só. */
+  --color-sage: #7a8b53;
+  --color-sage-claro: #b3bf8c;
+  --color-lime: #dff178;
+  --color-ambar: #e8a33d;
+  --color-terracota: #c2452d;
+
+  /* Tons de apoio derivados */
+  --color-tinta: #14201a;
+  --color-tinta-suave: #4a5a4e;
+
+  /* --- Tipografia: triad funcional --- */
+  --font-display: var(--fonte-display), Georgia, serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* --- Motion --- */
+  --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-entrada: cubic-bezier(0.7, 0, 0.84, 0);
+
+  /* ======================================================================
+     TOKENS DE DENTRO — do /entrar pra dentro. Não valem na landing.
+
+     A landing vende; o sistema é usado todo dia por alguém em tratamento e
+     por alguém de plantão. Herda a paleta institucional e inverte as regras
+     de uso.
+
+     LEI INVIOLÁVEL 1 — sage, âmbar e terracota significam classificação de
+     risco e nada mais. Nunca hover, nunca borda decorativa, nunca "fica
+     bonito assim". Cor sem significado é proibida.
+
+     LEI INVIOLÁVEL 2 — nenhum token de risco aparece no app do paciente.
+     A escala vive só no painel da equipe. Regra clínica, não estética.
+     ====================================================================== */
+
+  /* Superfícies — do fundo para o topo da pilha */
+  --color-superficie: #fbf9ef;
+  --color-superficie-baixa: #f4f1e2;
+  --color-superficie-alta: #ffffff;
+  --color-superficie-invertida: #1c2b21;
+
+  /* Traço e divisão — sempre tinta translúcida, nunca cinza morto */
+  --color-borda: rgba(20, 32, 26, 0.12);
+  --color-borda-forte: rgba(20, 32, 26, 0.24);
+
+  /* Texto */
+  --color-texto: #14201a;
+  --color-texto-suave: #4a5a4e;
+  --color-texto-fraco: #7d8a80;
+  --color-texto-invertido: #f4f1e2;
+
+  /* --- Escala de triagem — SOMENTE no painel da equipe --- */
+  --color-risco-verde: #5d7040;
+  --color-risco-verde-fundo: #eef1e2;
+  --color-risco-amarelo: #a8701f;
+  --color-risco-amarelo-fundo: #f9edd8;
+  --color-risco-vermelho: #a3341f;
+  --color-risco-vermelho-fundo: #f7e2dc;
+  /* Silêncio não é verde. Quem não respondeu tem estado próprio e neutro —
+     devolver verde para o silêncio é o erro clínico que o motor evita. */
+  --color-risco-silencio: #6b7a70;
+  --color-risco-silencio-fundo: #eceee9;
+
+  /* Ritmo vertical — o painel é denso de propósito, o app respira */
+  --espaco-denso: 0.5rem;
+  --espaco-padrao: 1rem;
+  --espaco-amplo: 1.75rem;
+
+  /* --- Forma (ADR-004) ---
+     Radius maior e sombra suave em vez de borda dura: é o que separa um cartão
+     desenhado de um retângulo com contorno. Vem das duas refs-base. */
+  --radius-sistema: 0.625rem;
+  --radius-amplo: 0.875rem;
+  --radius-pilula: 999px;
+
+  /* Sombra em duas camadas — contato curto + difusão longa. Uma camada só
+     produz aquele halo cinza chapado que denuncia o card genérico. */
+  --sombra-cartao: 0 1px 2px rgba(20, 32, 26, 0.04), 0 4px 12px rgba(20, 32, 26, 0.05);
+  --sombra-elevada: 0 2px 4px rgba(20, 32, 26, 0.05), 0 12px 28px rgba(20, 32, 26, 0.09);
+
+  /* --- Navegação ---
+     Deliberadamente fora da escala de risco. A barra lateral é mobília: se ela
+     usar sage, âmbar ou terracota, o único sinal que importa na tela — a cor da
+     classificação — perde a exclusividade e vira mais uma cor bonita. */
+  --color-nav-fundo: #f0efe4;
+  --color-nav-ativo: #1c2b21;
+  --color-nav-hover: rgba(20, 32, 26, 0.06);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+:root {
+  --fundo-pagina: var(--color-creme);
+  --tinta-pagina: var(--color-tinta);
+}
+
+html {
+  background-color: var(--fundo-pagina);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--fundo-pagina);
+  color: var(--tinta-pagina);
+  font-family: var(--font-sans);
+  /* A transição cromática entre estados da escala é conduzida por
+     ScrollTrigger; a duração aqui cobre o intervalo entre atualizações. */
+  transition: background-color 700ms var(--ease-saida);
+}
+
+::selection {
+  background-color: var(--color-lime);
+  color: var(--color-verde-profundo);
+}
+
+/* Foco visível — requisito de acessibilidade, não estilo.
+   O público inclui paciente idoso e navegação por teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   Utilitários autorais
+   ========================================================================== */
+
+/* Display didone: só na landing. Do /app do paciente pra dentro usa-se
+   grotesca — serif de alto contraste em corpo pequeno é falha de
+   acessibilidade para quem lê no pior dia do ciclo. Ver ADR-002. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.94;
+  letter-spacing: -0.02em;
+}
+
+/* Rótulo de seção — assinatura que funde as duas refs:
+   prefixo `//` (titanintake) + numeração entre parênteses (oevra). */
+.rotulo {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+}
+
+/* Grain: textura fina por cima do WebGL e das fotos, para craft.
+   Gerado por SVG inline — zero request de rede. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   Respeito a prefers-reduced-motion.
+   Paciente em tratamento pode ter náusea e sensibilidade vestibular —
+   aqui isso é requisito clínico, não cortesia.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
