@@ -1,0 +1,820 @@
+// AUREA — modelo de dados
+//
+// Este schema é a implementação das oito regras duras do ADR-001. Onde uma regra
+// virou tabela ou coluna, o comentário diz qual. Mudança que enfraqueça uma delas
+// não é refatoração: é revisão de decisão, e exige ADR novo.
+//
+//   1. Limiar e algoritmo são dado versionado    → ConjuntoDeLimiares, RegraDeLimiar
+//   2. A resposta crua é persistida sempre        → RespostaDeSintoma
+//   3. Orientação também é versionada             → ConjuntoDeOrientacoes, Orientacao
+//   4. Sintomas vira triagem + intervenção        → SessaoDeTriagem, Intervencao
+//   5. Log de acesso desde o dia 1                → LogDeAcesso
+//   6. Editar algoritmo ≠ estar de plantão        → Permissao, ConcessaoDePermissao
+//   7. Base operacional ≠ conjunto de pesquisa    → ParticipanteDePesquisa
+//   8. Orientação só nomeia o que está prescrito  → Orientacao.medicamentoId + Prescricao
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identidade e permissão
+// ---------------------------------------------------------------------------
+
+enum PerfilDeUsuario {
+  PACIENTE
+  PROFISSIONAL
+  ADMINISTRADOR
+}
+
+/// Regra 6. Quem edita o algoritmo muda o risco de todos os pacientes de uma vez;
+/// quem está de plantão atende um. Não pode ser a mesma permissão, e o perfil sozinho
+/// não separa — por isso permissão é concessão nominal e auditável, não campo booleano.
+enum Permissao {
+  ATENDER_PLANTAO
+  VER_HISTORICO_DE_PACIENTE
+  REGISTRAR_INTERVENCAO
+  EDITAR_ALGORITMO
+  PUBLICAR_ALGORITMO
+  EDITAR_ORIENTACAO
+  GERENCIAR_CADASTROS
+  GERENCIAR_USUARIOS
+  EXPORTAR_CONJUNTO_DE_PESQUISA
+}
+
+model Usuario {
+  id              String          @id @default(uuid())
+  /// Login do paciente. A enfermagem já conhece o paciente por ele e não há dúvida de quem é quem.
+  cpf             String?         @unique @db.VarChar(11)
+  /// Login do profissional e do administrador.
+  email           String?         @unique @db.VarChar(180)
+  senhaHash       String          @db.VarChar(120)
+  perfil          PerfilDeUsuario
+  ativo           Boolean         @default(true)
+  primeiroAcessoEm DateTime?
+  ultimoAcessoEm  DateTime?
+  criadoEm        DateTime        @default(now())
+  atualizadoEm    DateTime        @updatedAt
+
+  paciente     Paciente?
+  profissional Profissional?
+
+  permissoes          ConcessaoDePermissao[] @relation("PermissoesDoUsuario")
+  permissoesConcedidas ConcessaoDePermissao[] @relation("QuemConcedeu")
+  sessoesDeAcesso     SessaoDeAcesso[]
+  acessosRegistrados  LogDeAcesso[]
+  notificacoes        Notificacao[]
+
+  @@index([perfil, ativo])
+  @@map("usuarios")
+}
+
+model ConcessaoDePermissao {
+  id            String    @id @default(uuid())
+  usuarioId     String
+  permissao     Permissao
+  concedidaPorId String?
+  concedidaEm   DateTime  @default(now())
+  revogadaEm    DateTime?
+
+  usuario     Usuario  @relation("PermissoesDoUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  concedidaPor Usuario? @relation("QuemConcedeu", fields: [concedidaPorId], references: [id], onDelete: SetNull)
+
+  @@unique([usuarioId, permissao])
+  @@index([usuarioId, revogadaEm])
+  @@map("concessoes_de_permissao")
+}
+
+/// Sessão de login. Guarda o hash do token, nunca o token.
+model SessaoDeAcesso {
+  id         String    @id @default(uuid())
+  usuarioId  String
+  tokenHash  String    @unique @db.VarChar(120)
+  expiraEm   DateTime
+  revogadaEm DateTime?
+  ip         String?   @db.VarChar(45)
+  userAgent  String?   @db.VarChar(255)
+  criadaEm   DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, expiraEm])
+  @@map("sessoes_de_acesso")
+}
+
+// ---------------------------------------------------------------------------
+// Pessoas
+// ---------------------------------------------------------------------------
+
+enum Sexo {
+  FEMININO
+  MASCULINO
+  OUTRO
+  NAO_INFORMADO
+}
+
+enum FuncaoProfissional {
+  MEDICO
+  ENFERMEIRO
+  TECNICO_DE_ENFERMAGEM
+  NUTRICIONISTA
+  PSICOLOGO
+}
+
+model Profissional {
+  id                 String             @id @default(uuid())
+  usuarioId          String             @unique
+  nome               String             @db.VarChar(180)
+  funcao             FuncaoProfissional
+  registroDoConselho String?            @db.VarChar(40)
+  ativo              Boolean            @default(true)
+  criadoEm           DateTime           @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  pacientesComoMedicoAssistente Paciente[]        @relation("MedicoAssistente")
+  tratamentosComoMedico         Tratamento[]      @relation("MedicoResponsavel")
+  tratamentosComoEnfermeiro     Tratamento[]      @relation("EnfermeiroResponsavel")
+  intervencoes                  Intervencao[]
+  alergiasConfirmadas           AlergiaDoPaciente[]
+  eventosDeAgenda               EventoDeAgenda[]
+  prescricoesEmitidas           Prescricao[]
+  contatosAtendidos             SolicitacaoDeContato[]
+  algoritmosValidados           ConjuntoDeLimiares[] @relation("ValidacaoDeAlgoritmo")
+
+  @@index([funcao, ativo])
+  @@map("profissionais")
+}
+
+model Paciente {
+  id                String    @id @default(uuid())
+  usuarioId         String    @unique
+  nome              String    @db.VarChar(180)
+  dataNascimento    DateTime  @db.Date
+  sexo              Sexo      @default(NAO_INFORMADO)
+  diagnostico       String    @db.VarChar(255)
+  convenio          String?   @db.VarChar(120)
+  tipoSanguineo     String?   @db.VarChar(5)
+  urlDaFoto         String?   @db.VarChar(500)
+  /// Quantas evacuações por dia é o normal desta pessoa. Sem isso, contar episódios de
+  /// diarreia é ler número sem referência: quatro em quem evacuava uma vez não é o mesmo
+  /// que em quem evacuava três. É cadastro, não resposta diária.
+  habitoIntestinalBasal Int?
+  medicoAssistenteId String?
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
+
+  usuario          Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  medicoAssistente Profissional? @relation("MedicoAssistente", fields: [medicoAssistenteId], references: [id], onDelete: SetNull)
+
+  contatos              ContatoDoPaciente[]
+  alergias              AlergiaDoPaciente[]
+  tratamentos           Tratamento[]
+  prescricoes           Prescricao[]
+  sessoesDeTriagem      SessaoDeTriagem[]
+  eventosDeAgenda       EventoDeAgenda[]
+  solicitacoesDeContato SolicitacaoDeContato[]
+  consentimentos        Consentimento[]
+  acessosRecebidos      LogDeAcesso[]
+  participacaoNaPesquisa ParticipanteDePesquisa?
+
+  @@map("pacientes")
+}
+
+/// Contato do paciente e contato de emergência não são o mesmo campo: um é como falar
+/// com ele, o outro é quem chamar quando ele não responde — e é este segundo que a regra
+/// de silêncio usa. Guardar os dois numa lista genérica apaga a diferença justo no caso
+/// em que ela importa, então o tipo é obrigatório.
+enum TipoDeContato {
+  CONTATO_DO_PACIENTE
+  CONTATO_DE_EMERGENCIA
+}
+
+model ContatoDoPaciente {
+  id         String        @id @default(uuid())
+  pacienteId String
+  tipo       TipoDeContato
+  nome       String        @db.VarChar(180)
+  telefone   String        @db.VarChar(20)
+  relacao    String?       @db.VarChar(60)
+  criadoEm   DateTime      @default(now())
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId, tipo])
+  @@map("contatos_do_paciente")
+}
+
+/// Alergia informada pelo paciente é dado útil e não verificado. Fica registrada com a
+/// origem e espera confirmação da equipe — é a fila de pendência que a especificação
+/// implicava e não declarava.
+enum OrigemDaInformacao {
+  EQUIPE
+  PACIENTE
+}
+
+model AlergiaDoPaciente {
+  id             String             @id @default(uuid())
+  pacienteId     String
+  descricao      String             @db.VarChar(255)
+  origem         OrigemDaInformacao @default(EQUIPE)
+  confirmadaPorId String?
+  confirmadaEm   DateTime?
+  criadaEm       DateTime           @default(now())
+
+  paciente     Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  confirmadaPor Profissional? @relation(fields: [confirmadaPorId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, confirmadaEm])
+  @@map("alergias_do_paciente")
+}
+
+// ---------------------------------------------------------------------------
+// Tratamento
+// ---------------------------------------------------------------------------
+
+model Protocolo {
+  id        String   @id @default(uuid())
+  nome      String   @unique @db.VarChar(120)
+  descricao String?  @db.Text
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+
+  tratamentos Tratamento[]
+  regras      RegraDeLimiar[]
+  orientacoes Orientacao[]
+
+  @@map("protocolos")
+}
+
+model Tratamento {
+  id                     String    @id @default(uuid())
+  pacienteId             String
+  protocoloId            String
+  medicoResponsavelId    String?
+  enfermeiroResponsavelId String?
+  iniciadoEm             DateTime  @db.Date
+  encerradoEm            DateTime? @db.Date
+  criadoEm               DateTime  @default(now())
+
+  paciente             Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  protocolo            Protocolo     @relation(fields: [protocoloId], references: [id])
+  medicoResponsavel    Profissional? @relation("MedicoResponsavel", fields: [medicoResponsavelId], references: [id], onDelete: SetNull)
+  enfermeiroResponsavel Profissional? @relation("EnfermeiroResponsavel", fields: [enfermeiroResponsavelId], references: [id], onDelete: SetNull)
+
+  ciclos Ciclo[]
+
+  @@index([pacienteId, encerradoEm])
+  @@map("tratamentos")
+}
+
+/// Um ciclo é uma sessão de quimioterapia e o intervalo que a segue.
+///
+/// `dia do ciclo` NÃO é coluna aqui, de propósito: é a diferença entre hoje e
+/// `sessaoRealizadaEm`. Guardado em coluna, nasceria desatualizado no dia seguinte e
+/// alguém teria que rodar rotina diária para corrigir — estado derivável armazenado é
+/// estado que diverge. Quando o dia do ciclo entra numa classificação, ele é congelado
+/// dentro da explicação daquela classificação, que é onde ele precisa ser imutável.
+model Ciclo {
+  id                    String    @id @default(uuid())
+  tratamentoId          String
+  numero                Int
+  sessaoRealizadaEm     DateTime  @db.Date
+  previsaoDaProximaSessao DateTime? @db.Date
+  criadoEm              DateTime  @default(now())
+
+  tratamento       Tratamento        @relation(fields: [tratamentoId], references: [id], onDelete: Cascade)
+  sessoesDeTriagem SessaoDeTriagem[]
+
+  @@unique([tratamentoId, numero])
+  @@index([sessaoRealizadaEm])
+  @@map("ciclos")
+}
+
+model Medicamento {
+  id            String   @id @default(uuid())
+  nome          String   @db.VarChar(160)
+  principioAtivo String?  @db.VarChar(160)
+  criadoEm      DateTime @default(now())
+
+  prescricoes Prescricao[]
+  orientacoes Orientacao[]
+
+  @@unique([nome])
+  @@map("medicamentos")
+}
+
+/// Regra 8 depende desta tabela: orientação só nomeia medicamento que consta aqui,
+/// ativo, para aquele paciente. Sem prescrição registrada, a orientação existe mas
+/// sai sem citar nome — sugerir medicamento não prescrito sai de orientação e entra
+/// em conduta médica.
+model Prescricao {
+  id            String    @id @default(uuid())
+  pacienteId    String
+  medicamentoId String
+  posologia     String    @db.VarChar(255)
+  iniciadaEm    DateTime  @db.Date
+  encerradaEm   DateTime? @db.Date
+  prescritaPorId String?
+  criadaEm      DateTime  @default(now())
+
+  paciente     Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  medicamento  Medicamento   @relation(fields: [medicamentoId], references: [id])
+  prescritaPor Profissional? @relation(fields: [prescritaPorId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, encerradaEm])
+  @@map("prescricoes")
+}
+
+// ---------------------------------------------------------------------------
+// Algoritmo de classificação — regra 1
+// ---------------------------------------------------------------------------
+
+enum Sintoma {
+  FEBRE
+  DIARREIA
+  NAUSEA_VOMITO
+  DOR
+  FALTA_DE_AR
+}
+
+enum Classificacao {
+  VERDE
+  AMARELO
+  VERMELHO
+}
+
+enum Operador {
+  MAIOR_OU_IGUAL
+  MAIOR_QUE
+  MENOR_OU_IGUAL
+  MENOR_QUE
+  IGUAL
+  ENTRE
+  E_VERDADEIRO
+  E_FALSO
+  ESTA_EM
+}
+
+enum PoliticaDeCombinacao {
+  PIOR_ISOLADO
+  DOIS_AMARELOS_VIRAM_VERMELHO
+}
+
+enum EfeitoDoAntitermico {
+  IGNORAR
+  ELEVAR_UM_NIVEL
+}
+
+enum TratamentoDeAbandono {
+  NAO_CLASSIFICAR
+  PIOR_DOS_RESPONDIDOS
+}
+
+/// Uma versão inteira do algoritmo, congelada.
+///
+/// Conjunto publicado nunca é editado — publica-se outro e desativa-se o anterior.
+/// É o que permite reconstruir, meses depois, com qual regra aquele dia foi classificado.
+/// Os três campos de política respondem, como dado, a três das seis decisões que a
+/// especificação deixou em aberto na tela 6.
+model ConjuntoDeLimiares {
+  id                   String               @id @default(uuid())
+  versao               String               @unique @db.VarChar(60)
+  descricao            String               @db.Text
+  /// De onde vieram os números: "CTCAE v5.0", "protocolo do serviço", "provisório".
+  origem               String               @db.VarChar(255)
+  /// Falso enquanto ninguém com responsabilidade clínica assinou estes cortes.
+  /// Conjunto não validado classifica — senão não há demo — mas o resultado carrega
+  /// a marca e a interface é obrigada a mostrar.
+  validadoClinicamente Boolean              @default(false)
+  /// Quem assinou a responsabilidade clínica pelos cortes. É profissional, não
+  /// usuário genérico: quem valida limiar de risco responde tecnicamente por ele.
+  validadoPorId        String?
+  validadoEm           DateTime?
+  combinacao           PoliticaDeCombinacao @default(PIOR_ISOLADO)
+  efeitoDoAntitermico  EfeitoDoAntitermico  @default(IGNORAR)
+  tratamentoDeAbandono TratamentoDeAbandono @default(NAO_CLASSIFICAR)
+  /// Exatamente um conjunto ativo por vez. A API recusa publicar o segundo.
+  ativo                Boolean              @default(false)
+  publicadoEm          DateTime?
+  criadoEm             DateTime             @default(now())
+
+  regras         RegraDeLimiar[]
+  classificacoes Classificacao_[]
+  validadoPor    Profissional?   @relation("ValidacaoDeAlgoritmo", fields: [validadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([ativo])
+  @@map("conjuntos_de_limiares")
+}
+
+/// Um corte. O motor não sabe o que é febre: sabe comparar o valor gravado no campo
+/// `temperaturaMaxima` do sintoma `FEBRE` contra um número que veio desta tabela.
+/// Todo o conhecimento clínico do sistema está aqui, e nenhum está no programa.
+model RegraDeLimiar {
+  id                 String        @id @default(uuid())
+  conjuntoId         String
+  ordem              Int
+  sintoma            Sintoma
+  /// Chave do campo na árvore de `@aurea/contratos`. Regra apontando para campo
+  /// inexistente nunca dispara — é um corte que a equipe pensa que vale e não vale.
+  /// A conferência de integridade roda antes de publicar o conjunto.
+  campo              String        @db.VarChar(64)
+  operador           Operador
+  valor              Decimal?      @db.Decimal(6, 2)
+  valorSecundario    Decimal?      @db.Decimal(6, 2)
+  /// Operandos de ESTA_EM sobre campo de lista fechada.
+  valoresDeTexto     Json?
+  classificacao      Classificacao
+  /// Por que este corte existe. Vai para a explicação da classificação e para a defesa.
+  justificativa      String        @db.Text
+  /// Janela do ciclo em que a regra vale. O mesmo sintoma no dia 3 e no dia 10 depois
+  /// da sessão não tem o mesmo peso, e o dado para modular isso já existia no modelo
+  /// sem ser usado.
+  diaDoCicloMinimo   Int?
+  diaDoCicloMaximo   Int?
+  /// Restringe a regra a um protocolo. Nulo = vale para todos.
+  protocoloId        String?
+
+  conjunto  ConjuntoDeLimiares @relation(fields: [conjuntoId], references: [id], onDelete: Cascade)
+  protocolo Protocolo?         @relation(fields: [protocoloId], references: [id], onDelete: SetNull)
+
+  @@index([conjuntoId, sintoma])
+  @@map("regras_de_limiar")
+}
+
+// ---------------------------------------------------------------------------
+// Orientação — regra 3
+// ---------------------------------------------------------------------------
+
+model ConjuntoDeOrientacoes {
+  id          String    @id @default(uuid())
+  versao      String    @unique @db.VarChar(60)
+  descricao   String    @db.Text
+  ativo       Boolean   @default(false)
+  publicadoEm DateTime?
+  criadoEm    DateTime  @default(now())
+
+  orientacoes Orientacao[]
+
+  @@index([ativo])
+  @@map("conjuntos_de_orientacoes")
+}
+
+model Orientacao {
+  id            String        @id @default(uuid())
+  conjuntoId    String
+  sintoma       Sintoma
+  classificacao Classificacao
+  protocoloId   String?
+  ordem         Int           @default(0)
+  titulo        String        @db.VarChar(180)
+  corpo         String        @db.Text
+  /// Regra 8. Preenchido = este texto cita um medicamento, e só pode ser entregue a
+  /// quem tem prescrição ativa dele. Sem prescrição, a orientação é omitida e entra
+  /// a versão que orienta sem nomear.
+  medicamentoId String?
+  verbeteId     String?
+
+  conjunto    ConjuntoDeOrientacoes @relation(fields: [conjuntoId], references: [id], onDelete: Cascade)
+  protocolo   Protocolo?            @relation(fields: [protocoloId], references: [id], onDelete: SetNull)
+  medicamento Medicamento?          @relation(fields: [medicamentoId], references: [id], onDelete: SetNull)
+  verbete     VerbeteDaBiblioteca?  @relation(fields: [verbeteId], references: [id], onDelete: SetNull)
+
+  entregas OrientacaoEntregue[]
+
+  @@index([conjuntoId, sintoma, classificacao])
+  @@map("orientacoes")
+}
+
+// ---------------------------------------------------------------------------
+// Triagem — regras 2 e 4
+// ---------------------------------------------------------------------------
+
+enum EstadoDaSessao {
+  EM_ANDAMENTO
+  CONCLUIDA
+  ABANDONADA
+}
+
+model SessaoDeTriagem {
+  id                   String         @id @default(uuid())
+  pacienteId           String
+  cicloId              String?
+  /// Enviada pelo cliente. Reenvio por rede instável não cria dois check-ins do mesmo dia.
+  chaveDeIdempotencia  String         @unique @db.VarChar(60)
+  estado               EstadoDaSessao @default(EM_ANDAMENTO)
+  /// A tela de check-in existe separada da home porque é o consentimento do dia. Ter a
+  /// hora de início permite depois saber quantos abandonam no meio e em qual sintoma.
+  iniciadaEm           DateTime       @default(now())
+  concluidaEm          DateTime?
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  ciclo    Ciclo?   @relation(fields: [cicloId], references: [id], onDelete: SetNull)
+
+  respostas             RespostaDeSintoma[]
+  classificacoes        Classificacao_[]
+  orientacoesEntregues  OrientacaoEntregue[]
+  intervencoes          Intervencao[]
+  solicitacoesDeContato SolicitacaoDeContato[]
+
+  @@index([pacienteId, iniciadaEm])
+  @@index([estado, iniciadaEm])
+  @@map("sessoes_de_triagem")
+}
+
+/// Regra 2 — a resposta crua, do jeito que o paciente respondeu.
+///
+/// `temperaturaMaxima = 38.4` fica gravado ao lado da classificação que produziu.
+/// Sem isto não há reprocessamento do histórico quando o corte mudar, nem explicação
+/// posterior de por que aquele dia foi amarelo. Para um trabalho que precisa VALIDAR
+/// o produto, é o dado mais importante do banco.
+model RespostaDeSintoma {
+  id            String   @id @default(uuid())
+  sessaoId      String
+  sintoma       Sintoma
+  campo         String   @db.VarChar(64)
+  valorNumerico Decimal? @db.Decimal(6, 2)
+  valorBooleano Boolean?
+  valorTexto    String?  @db.VarChar(120)
+  respondidaEm  DateTime @default(now())
+
+  sessao SessaoDeTriagem @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  @@unique([sessaoId, sintoma, campo])
+  @@index([sintoma, campo])
+  @@map("respostas_de_sintoma")
+}
+
+enum SituacaoDaClassificacao {
+  CLASSIFICADA
+  NAO_CLASSIFICADA
+}
+
+/// Reprocessamento não apaga o original. Uma sessão pode ter várias classificações —
+/// uma por conjunto de limiares — e é comparando as duas que se mede o efeito de mudar
+/// o corte. Esse é o experimento da dissertação, não um detalhe de implementação.
+enum OrigemDaClassificacao {
+  ORIGINAL
+  REPROCESSAMENTO
+}
+
+/// O nome tem sublinhado no fim porque `Classificacao` já é o enum das três cores.
+/// A tabela no banco se chama `classificacoes`, sem sublinhado.
+model Classificacao_ {
+  id                    String                  @id @default(uuid())
+  sessaoId              String
+  conjuntoDeLimiaresId  String
+  situacao              SituacaoDaClassificacao
+  resultado             Classificacao?
+  motivoDeNaoClassificar String?                @db.VarChar(255)
+  /// A explicação completa: quais regras dispararam, com que valor observado, quais
+  /// ajustes de política entraram, e o dia do ciclo congelado no momento do cálculo.
+  /// Não é log — é o que torna a classificação reconstruível meses depois.
+  explicacao            Json
+  origem                OrigemDaClassificacao   @default(ORIGINAL)
+  calculadaEm           DateTime                @default(now())
+
+  sessao   SessaoDeTriagem    @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  conjunto ConjuntoDeLimiares @relation(fields: [conjuntoDeLimiaresId], references: [id])
+
+  @@unique([sessaoId, conjuntoDeLimiaresId])
+  @@index([resultado, calculadaEm])
+  @@map("classificacoes")
+}
+
+/// O que o paciente efetivamente viu na tela 7 naquele dia.
+model OrientacaoEntregue {
+  id           String   @id @default(uuid())
+  sessaoId     String
+  orientacaoId String
+  entregueEm   DateTime @default(now())
+
+  sessao     SessaoDeTriagem @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  orientacao Orientacao      @relation(fields: [orientacaoId], references: [id])
+
+  @@unique([sessaoId, orientacaoId])
+  @@map("orientacoes_entregues")
+}
+
+// ---------------------------------------------------------------------------
+// Painel da enfermagem — regra 4
+// ---------------------------------------------------------------------------
+
+enum SituacaoDoSintoma {
+  RESOLVIDO
+  EM_ACOMPANHAMENTO
+}
+
+/// A intervenção referencia a sessão de triagem que gerou o alerta. É essa amarração
+/// que permite responder "quanto tempo levou do alerta ao contato" — a métrica de
+/// qualidade do serviço, e um dos indicadores de desfecho que faltavam ao dashboard.
+model Intervencao {
+  id                 String            @id @default(uuid())
+  sessaoDeTriagemId  String
+  profissionalId     String
+  conduta            String            @db.Text
+  situacao           SituacaoDoSintoma
+  contatoRealizadoEm DateTime
+  registradaEm       DateTime          @default(now())
+
+  sessaoDeTriagem SessaoDeTriagem @relation(fields: [sessaoDeTriagemId], references: [id], onDelete: Cascade)
+  profissional    Profissional    @relation(fields: [profissionalId], references: [id])
+
+  @@index([sessaoDeTriagemId])
+  @@index([situacao, registradaEm])
+  @@map("intervencoes")
+}
+
+/// O botão "solicitar contato da enfermagem" da tela 7. Uma promessa com prazo
+/// implícito: o paciente clica e espera resposta. Enquanto não existir regra de escala
+/// e de tempo máximo de retorno, a tabela pelo menos registra a promessa e o prazo real.
+model SolicitacaoDeContato {
+  id           String    @id @default(uuid())
+  pacienteId   String
+  sessaoId     String?
+  solicitadaEm DateTime  @default(now())
+  atendidaEm   DateTime?
+  atendidaPorId String?
+
+  paciente    Paciente         @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  sessao      SessaoDeTriagem? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+  atendidaPor Profissional?    @relation(fields: [atendidaPorId], references: [id], onDelete: SetNull)
+
+  @@index([atendidaEm, solicitadaEm])
+  @@map("solicitacoes_de_contato")
+}
+
+// ---------------------------------------------------------------------------
+// Agenda, biblioteca e notificação
+// ---------------------------------------------------------------------------
+
+enum TipoDeEvento {
+  QUIMIOTERAPIA
+  CONSULTA_MEDICA
+  CONSULTA_NUTRICAO
+  CONSULTA_PSICOLOGIA
+}
+
+model EventoDeAgenda {
+  id             String       @id @default(uuid())
+  pacienteId     String
+  tipo           TipoDeEvento
+  aconteceEm     DateTime
+  local          String?      @db.VarChar(180)
+  profissionalId String?
+  observacoes    String?      @db.Text
+  criadoEm       DateTime     @default(now())
+
+  paciente     Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  profissional Profissional? @relation(fields: [profissionalId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, aconteceEm])
+  @@map("eventos_de_agenda")
+}
+
+enum CategoriaDaBiblioteca {
+  MEDICAMENTOS
+  ALIMENTACAO
+  MUCOSITE
+  CATETER
+  QUEDA_DE_CABELO
+  DIARREIA
+  CONSTIPACAO
+  EXERCICIOS
+  VACINAS
+  DIREITOS_DO_PACIENTE
+}
+
+/// Conteúdo clínico é trabalho de escrita, não de código, e conteúdo errado sobre
+/// neutropenia ou vacina em imunossuprimido é dano direto. Por isso autoria e revisão
+/// são colunas obrigatórias na prática: verbete só aparece no app com `publicado`,
+/// e publicar sem revisão é o que a coluna existe para impedir.
+model VerbeteDaBiblioteca {
+  id           String                @id @default(uuid())
+  categoria    CategoriaDaBiblioteca
+  titulo       String                @db.VarChar(180)
+  corpo        String                @db.Text
+  autoria      String                @db.VarChar(180)
+  fonteExterna String?               @db.VarChar(500)
+  revisadoPor  String?               @db.VarChar(180)
+  revisadoEm   DateTime?
+  publicado    Boolean               @default(false)
+  criadoEm     DateTime              @default(now())
+
+  orientacoes Orientacao[]
+
+  @@index([categoria, publicado])
+  @@map("verbetes_da_biblioteca")
+}
+
+enum CanalDeNotificacao {
+  NO_APP
+  EMAIL
+  WHATSAPP
+  SMS
+  PUSH
+}
+
+model Notificacao {
+  id             String             @id @default(uuid())
+  destinatarioId String
+  canal          CanalDeNotificacao
+  assunto        String             @db.VarChar(180)
+  corpo          String             @db.Text
+  referenciaTipo String?            @db.VarChar(60)
+  referenciaId   String?            @db.VarChar(60)
+  enviadaEm      DateTime?
+  lidaEm         DateTime?
+  criadaEm       DateTime           @default(now())
+
+  destinatario Usuario @relation(fields: [destinatarioId], references: [id], onDelete: Cascade)
+
+  @@index([destinatarioId, lidaEm])
+  @@map("notificacoes")
+}
+
+// ---------------------------------------------------------------------------
+// LGPD — regras 5 e 7
+// ---------------------------------------------------------------------------
+
+enum AcaoDeAcesso {
+  LOGIN
+  LOGIN_RECUSADO
+  LOGOUT
+  TROCA_DE_SENHA
+  CONSENTIMENTO_REGISTRADO
+  LEITURA_DE_HISTORICO
+  LEITURA_DE_PACIENTE
+  REGISTRO_DE_INTERVENCAO
+  ATENDIMENTO_DE_SOLICITACAO
+  CRIACAO_DE_CADASTRO
+  EDICAO_DE_CADASTRO
+  EDICAO_DE_ORIENTACAO
+  EDICAO_DE_ALGORITMO
+  PUBLICACAO_DE_ALGORITMO
+  VALIDACAO_CLINICA_DE_ALGORITMO
+  REPROCESSAMENTO_DE_HISTORICO
+  EXPORTACAO_DE_PESQUISA
+}
+
+/// Regra 5 — quem abriu o histórico de quem, desde o dia 1.
+/// Tabela só de escrita: nada no sistema atualiza ou apaga linha daqui.
+model LogDeAcesso {
+  id         String       @id @default(uuid())
+  usuarioId  String
+  pacienteId String?
+  acao       AcaoDeAcesso
+  rota       String       @db.VarChar(180)
+  metodo     String       @db.VarChar(10)
+  ip         String?      @db.VarChar(45)
+  userAgent  String?      @db.VarChar(255)
+  ocorridoEm DateTime     @default(now())
+
+  usuario  Usuario   @relation(fields: [usuarioId], references: [id])
+  paciente Paciente? @relation(fields: [pacienteId], references: [id])
+
+  @@index([pacienteId, ocorridoEm])
+  @@index([usuarioId, ocorridoEm])
+  @@map("logs_de_acesso")
+}
+
+/// O que a tela de primeiro acesso consentiu, em qual versão do termo. Muda quando o
+/// termo muda, e o histórico de versões é o que o Comitê de Ética vai pedir.
+model Consentimento {
+  id            String   @id @default(uuid())
+  pacienteId    String
+  versaoDoTermo String   @db.VarChar(40)
+  aceitoEm      DateTime @default(now())
+  ip            String?  @db.VarChar(45)
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@unique([pacienteId, versaoDoTermo])
+  @@map("consentimentos")
+}
+
+/// Regra 7 — a ponte entre a base operacional e o conjunto de pesquisa.
+///
+/// Não existe versão anônima do AUREA em operação: a enfermeira precisa saber quem
+/// ligar. O que existe é um código que substitui a identidade na exportação. Esta
+/// tabela é a única que liga os dois lados, e é a única que NÃO acompanha a exportação.
+///
+/// ATENÇÃO — a separação hoje é lógica, não física. Enquanto o conjunto de pesquisa for
+/// gerado por exportação a partir do mesmo banco, um erro de consulta expõe paciente.
+/// Separação física é decisão do gate LGPD e precisa de ADR próprio.
+model ParticipanteDePesquisa {
+  id         String    @id @default(uuid())
+  pacienteId String    @unique
+  codigo     String    @unique @db.VarChar(20)
+  incluidoEm DateTime  @default(now())
+  excluidoEm DateTime?
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@map("participantes_de_pesquisa")
+}
