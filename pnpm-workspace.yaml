@@ -1,0 +1,12 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  '@prisma/client': true
+  prisma: true
+  bcrypt: true
+  esbuild: true
+  '@prisma/engines': true

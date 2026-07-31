@@ -1,0 +1,19 @@
+{
+  "name": "aurea",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AUREA — monitoramento remoto de toxicidade em tratamento antineoplásico",
+  "scripts": {
+    "dev": "pnpm --filter \"./packages/*\" build && pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter \"./packages/*\" build && pnpm --filter @aurea/web dev",
+    "dev:api": "pnpm --filter \"./packages/*\" build && pnpm --filter @aurea/api dev",
+    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.5.1"
+}

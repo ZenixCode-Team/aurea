@@ -1,0 +1,36 @@
+# dependências
+node_modules/
+.pnp
+.pnp.*
+
+# build
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# testes
+coverage/
+
+# env — nunca commitar
+.env
+.env.*
+!.env.example
+
+# dados de paciente — nunca commitar, nem sintético exportado
+/dados-de-pesquisa/
+*.dump.sql
+*.backup.sql
+
+# sistema
+.DS_Store
+*.pem
+
+# logs
+*-debug.log*
+npm-debug.log*
+
+# vercel
+.vercel
