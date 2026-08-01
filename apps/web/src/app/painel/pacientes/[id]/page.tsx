@@ -34,6 +34,7 @@ import {
 import { Modal } from '@/componentes/sistema/modal';
 import { ErroDaFonte, buscarHistoricoNoPainel } from '@/sistema/fonte';
 import {
+  formatarData,
   formatarDataEHora,
   formatarMedida,
   nomeDoCampoLegivel,
@@ -256,6 +257,11 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
         <CartaoDeIndicador
           rotulo="Dia do ciclo"
           valor={historico.paciente.diaDoCiclo ?? '—'}
+          apoio={
+            historico.paciente.numeroDoCiclo != null
+              ? `ciclo ${historico.paciente.numeroDoCiclo}`
+              : 'sem tratamento ativo'
+          }
         />
         <CartaoDeIndicador rotulo="Sessões registradas" valor={sessoesOrdenadas.length} />
         <CartaoDeIndicador
@@ -263,6 +269,108 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
           valor={sessoesOrdenadas.reduce((total, s) => total + s.intervencoes.length, 0)}
         />
       </LinhaDeIndicadores>
+
+      {/* Cadastro e receitas antes do histórico de sessões.
+          A ordem responde ao que a enfermagem faz de verdade: ela abre esta tela com o
+          telefone na mão. Quem é, quem cuida, o que a pessoa toma — e só então o que
+          ela relatou nos últimos dias. Histórico primeiro obrigaria a rolar a tela
+          inteira para achar um número de telefone. */}
+      <div className="mb-6 grid gap-4 xl:grid-cols-2">
+        <Bloco titulo="Cadastro" descricao="Dados de identificação e de contato.">
+          <dl className="flex flex-col gap-3 text-sm">
+            <LinhaDeDado rotulo="Diagnóstico" valor={historico.paciente.diagnostico} />
+            <LinhaDeDado
+              rotulo="Nascimento"
+              valor={
+                historico.paciente.dataNascimento
+                  ? formatarData(historico.paciente.dataNascimento)
+                  : null
+              }
+            />
+            <LinhaDeDado rotulo="Convênio" valor={historico.paciente.convenio ?? null} />
+            <LinhaDeDado
+              rotulo="Médico assistente"
+              valor={historico.paciente.medicoAssistente ?? null}
+            />
+            <LinhaDeDado rotulo="Protocolo" valor={historico.paciente.protocolo} />
+          </dl>
+
+          <div className="mt-5 border-t border-[var(--color-borda)] pt-4">
+            <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.08em] text-[var(--color-texto-fraco)]">
+              Quem cuida em casa
+            </p>
+            {(historico.paciente.contatos ?? []).length === 0 ? (
+              <p className="text-sm text-[var(--color-texto-fraco)]">
+                Nenhum contato cadastrado.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2.5">
+                {(historico.paciente.contatos ?? []).map((contato) => (
+                  <li
+                    key={`${contato.nome}-${contato.telefone}`}
+                    className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+                  >
+                    <span className="text-[var(--color-texto)]">
+                      {contato.nome}
+                      <span className="ml-1.5 text-xs text-[var(--color-texto-fraco)]">
+                        {contato.relacao ?? 'relação não informada'}
+                        {contato.deEmergencia ? ' · emergência' : ''}
+                      </span>
+                    </span>
+                    <a
+                      href={`tel:${contato.telefone}`}
+                      className="font-mono text-sm tabular-nums text-[var(--color-texto)] underline-offset-2 hover:underline"
+                    >
+                      {contato.telefone}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Bloco>
+
+        <Bloco
+          titulo="Receitas"
+          descricao="Em vigor primeiro. O que a pessoa tomava fica visível como contexto, marcado como encerrado."
+        >
+          {(historico.prescricoes ?? []).length === 0 ? (
+            <p className="text-sm text-[var(--color-texto-fraco)]">
+              Nenhuma prescrição registrada para este paciente.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3.5">
+              {(historico.prescricoes ?? []).map((prescricao) => (
+                <li
+                  key={prescricao.id}
+                  className="border-b border-[var(--color-borda)] pb-3.5 last:border-b-0 last:pb-0"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium text-[var(--color-texto)]">
+                      {prescricao.medicamento}
+                    </span>
+                    {/* Encerrada é dito por palavra, não por cor esmaecida: receita
+                        antiga lida como atual é erro de medicação. */}
+                    {!prescricao.emVigor && (
+                      <span className="rounded-[var(--radius-pilula)] bg-[var(--color-superficie-baixa)] px-2 py-0.5 text-xs text-[var(--color-texto-suave)]">
+                        encerrada em {formatarData(prescricao.encerradaEm ?? '')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--color-texto-suave)]">
+                    {prescricao.posologia}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--color-texto-fraco)]">
+                    desde {formatarData(prescricao.iniciadaEm)}
+                    {prescricao.prescritaPor ? ` · ${prescricao.prescritaPor}` : ''}
+                    {prescricao.principioAtivo ? ` · ${prescricao.principioAtivo}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloco>
+      </div>
 
       <div className="flex flex-col gap-6">
         {sessoesOrdenadas.map((sessao) => (
@@ -532,5 +640,21 @@ function ModalDeIntervencao({
         </fieldset>
       </div>
     </Modal>
+  );
+}
+
+/** Uma linha de `rótulo: valor` do cartão de cadastro. Vazio vira travessão, nunca some. */
+function LinhaDeDado({ rotulo, valor }: { rotulo: string; valor: string | null }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <dt className="text-[var(--color-texto-suave)]">{rotulo}</dt>
+      <dd className="text-right text-[var(--color-texto)]">
+        {valor && valor.length > 0 ? (
+          valor
+        ) : (
+          <span className="text-[var(--color-texto-fraco)]">não informado</span>
+        )}
+      </dd>
+    </div>
   );
 }

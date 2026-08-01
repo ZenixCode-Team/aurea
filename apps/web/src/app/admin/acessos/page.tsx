@@ -14,11 +14,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  BarrasDeVolume,
   Bloco,
   CabecalhoDePainel,
   CartaoDeIndicador,
   FiltroEmPilula,
   LinhaDeIndicadores,
+  SeloDeBloco,
+  type ColunaDeVolume,
 } from '@/componentes/sistema/painel';
 import {
   Aviso,
@@ -74,6 +77,64 @@ export default function PaginaDeAcessos() {
 
   const ultimoAcesso = estado.situacao === 'PRONTO' ? estado.registros[0] ?? null : null;
 
+  /**
+   * Volume por dia, empilhado por ação.
+   *
+   * Duas decisões que valem comentário:
+   *
+   * O agrupamento é pela STRING da data (`slice(0, 10)`), nunca por `new Date`. É a
+   * mesma escolha do histórico do paciente e pelo mesmo motivo: um registro de 22h em
+   * São Paulo vira o dia seguinte se a conta passar por UTC, e um pico noturno de
+   * acesso a prontuário migrar de dia numa tela de auditoria é o oposto de auditável.
+   *
+   * A paleta tem seis séries, e o registro tem doze tipos de ação. As cinco mais
+   * frequentes ganham série própria e o resto vira "Outras" — em vez de repetir cor,
+   * que faria duas ações diferentes ficarem idênticas no gráfico.
+   */
+  const { volumePorDia, seriesDoVolume } = useMemo((): {
+    volumePorDia: readonly ColunaDeVolume[];
+    seriesDoVolume: readonly string[];
+  } => {
+    if (estado.situacao !== 'PRONTO') return { volumePorDia: [], seriesDoVolume: [] };
+
+    const contagemPorAcao = new Map<string, number>();
+    for (const registro of estado.registros) {
+      contagemPorAcao.set(registro.acao, (contagemPorAcao.get(registro.acao) ?? 0) + 1);
+    }
+
+    const principais = [...contagemPorAcao.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([acao]) => acao);
+
+    const temOutras = contagemPorAcao.size > principais.length;
+    const series = [
+      ...principais.map((acao) => ROTULO_DA_ACAO[acao] ?? acao),
+      ...(temOutras ? ['Outras'] : []),
+    ];
+
+    const porDia = new Map<string, number[]>();
+    for (const registro of estado.registros) {
+      const dia = registro.aconteceuEm.slice(0, 10);
+      const parcelas = porDia.get(dia) ?? new Array<number>(series.length).fill(0);
+      const indice = principais.indexOf(registro.acao);
+      const alvo = indice === -1 ? series.length - 1 : indice;
+      parcelas[alvo] = (parcelas[alvo] ?? 0) + 1;
+      porDia.set(dia, parcelas);
+    }
+
+    /* Últimos 14 dias com registro. Barra fina demais não é gráfico, é textura. */
+    const colunas = [...porDia.entries()]
+      .sort(([umDia], [outroDia]) => umDia.localeCompare(outroDia))
+      .slice(-14)
+      .map(([dia, partes]) => ({
+        rotulo: `${dia.slice(8, 10)}/${dia.slice(5, 7)}`,
+        partes,
+      }));
+
+    return { volumePorDia: colunas, seriesDoVolume: series };
+  }, [estado]);
+
   return (
     <>
       <CabecalhoDePainel
@@ -102,6 +163,37 @@ export default function PaginaDeAcessos() {
               tom="neutro"
             />
           </LinhaDeIndicadores>
+
+          {/*
+            Volume por dia — a primeira aplicação da paleta de dados do ADR-005.
+
+            Registro de acesso é operação pura: exigência de LGPD, não sinal clínico.
+            Nenhuma barra aqui diz nada sobre paciente, e é justamente por isso que
+            esta tela é o lugar certo para estrear a paleta fria. Se o gráfico
+            estivesse no plantão, azul e ameixa dividiriam a tela com vermelho e âmbar
+            da escala, e alguém em algum plantão leria uma barra como classificação.
+
+            O recorte é dos registros JÁ carregados: nenhuma chamada nova, nenhum
+            endpoint de agregação. Quando a auditoria precisar de período longo, isso
+            vira consulta no servidor — hoje seria complexidade sem demanda.
+          */}
+          <div className="mb-6">
+            <Bloco
+              titulo="Volume por dia"
+              selo={<SeloDeBloco>{volumePorDia.length} dias</SeloDeBloco>}
+              descricao="Distribuição dos registros carregados, por tipo de ação. Serve para achar pico fora do horário e concentração num único usuário."
+            >
+              {volumePorDia.length === 0 ? (
+                <EstadoVazio titulo="Sem registros no período carregado" />
+              ) : (
+                <BarrasDeVolume
+                  titulo="Registros de acesso por dia, empilhados por tipo de ação"
+                  series={seriesDoVolume}
+                  colunas={volumePorDia}
+                />
+              )}
+            </Bloco>
+          </div>
 
           <Bloco
             titulo="Acessos"

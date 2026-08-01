@@ -14,7 +14,11 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { BarraDeProgresso } from '@/componentes/sistema/painel';
+import {
+  BarraDeProgresso,
+  CartaoDeIndicador,
+  LinhaDeIndicadores,
+} from '@/componentes/sistema/painel';
 import {
   Aviso,
   Cartao,
@@ -149,30 +153,60 @@ export default function PaginaHoje() {
         </Cartao>
       )}
 
+      {/* Os números do tratamento na mesma malha de filete dos painéis da equipe —
+          três células dividindo uma moldura só. É o mesmo objeto que o plantão vê, com
+          o conteúdo que cabe a esta pessoa: nenhum deles é classificação, e nenhum é
+          colorido. A prosa que estava aqui ("Dia 17 desde a sua última sessão") virou
+          número grande porque é isso que a pessoa procura ao abrir o app.
+
+          As três contas saem de duas datas já guardadas, sem consultar "hoje" em
+          momento nenhum: dia do ciclo e previsão vêm da API, e o total é a diferença
+          entre elas. É o que mantém o cartão imune ao bug de fuso que já custou uma
+          correção neste projeto. */}
       {perfil.ciclo && (
-        <Cartao className="flex flex-col gap-3 p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <Rotulo>Seu tratamento</Rotulo>
-            <span className="font-mono text-xs tabular-nums text-[var(--color-texto-fraco)]">
-              ciclo {perfil.ciclo.numero}
-            </span>
-          </div>
-          <p className="text-lg text-[var(--color-texto)]">
-            Dia <span className="font-mono tabular-nums">{perfil.ciclo.diaDoCiclo}</span> desde
-            a sua última sessão
-          </p>
-          {perfil.ciclo.previsaoDaProximaSessao && (
-            <BarraDeProgresso
-              atual={perfil.ciclo.diaDoCiclo}
-              total={diasEntre(
-                perfil.ciclo.sessaoRealizadaEm,
-                perfil.ciclo.previsaoDaProximaSessao,
-              )}
-              rotulo="Até a próxima sessão prevista"
-              descricao={formatarDataPorExtenso(perfil.ciclo.previsaoDaProximaSessao)}
+        <div className="flex flex-col gap-3">
+          <LinhaDeIndicadores colunas="tres">
+            <CartaoDeIndicador rotulo="Ciclo" valor={perfil.ciclo.numero} />
+            <CartaoDeIndicador
+              rotulo="Dia"
+              valor={perfil.ciclo.diaDoCiclo}
+              apoio={
+                perfil.ciclo.previsaoDaProximaSessao
+                  ? `de ${diasEntre(perfil.ciclo.sessaoRealizadaEm, perfil.ciclo.previsaoDaProximaSessao)}`
+                  : 'desde a última sessão'
+              }
             />
+            <CartaoDeIndicador
+              rotulo="Faltam"
+              valor={
+                perfil.ciclo.previsaoDaProximaSessao
+                  ? Math.max(
+                      diasEntre(
+                        perfil.ciclo.sessaoRealizadaEm,
+                        perfil.ciclo.previsaoDaProximaSessao,
+                      ) - perfil.ciclo.diaDoCiclo,
+                      0,
+                    )
+                  : '—'
+              }
+              apoio={perfil.ciclo.previsaoDaProximaSessao ? 'dias' : 'sem previsão'}
+            />
+          </LinhaDeIndicadores>
+
+          {perfil.ciclo.previsaoDaProximaSessao && (
+            <Cartao className="p-5">
+              <BarraDeProgresso
+                atual={perfil.ciclo.diaDoCiclo}
+                total={diasEntre(
+                  perfil.ciclo.sessaoRealizadaEm,
+                  perfil.ciclo.previsaoDaProximaSessao,
+                )}
+                rotulo="Até a próxima sessão prevista"
+                descricao={formatarDataPorExtenso(perfil.ciclo.previsaoDaProximaSessao)}
+              />
+            </Cartao>
           )}
-        </Cartao>
+        </div>
       )}
 
       <Cartao className="flex flex-col gap-2 p-5">

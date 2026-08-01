@@ -14,7 +14,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Guarda } from '@/componentes/sistema/guarda';
-import { BarraLateral, type SecaoDeNavegacao } from '@/componentes/sistema/painel';
+import { ShellDePainel, type SecaoDeNavegacao } from '@/componentes/sistema/painel';
 import { Botao } from '@/componentes/sistema/primitivos';
 import { useSessao } from '@/sistema/sessao';
 
@@ -52,31 +52,27 @@ export default function LayoutDoAdmin({ children }: { children: React.ReactNode 
 
   return (
     <Guarda perfil="ADMINISTRADOR">
-      <div className="flex min-h-dvh bg-[var(--color-superficie-baixa)]">
-        <BarraLateral
-          produto="AUREA"
-          contexto="Administração"
-          secoes={SECOES}
-          caminhoAtual={caminho}
-          rodape={
-            <div className="flex flex-col gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-[var(--color-texto)]">
-                  {usuario?.nome}
-                </p>
-                <p className="text-xs text-[var(--color-texto-fraco)]">Orientação clínica</p>
-              </div>
-              <Botao variante="secundario" tamanho="compacto" onClick={encerrar}>
-                Sair
-              </Botao>
+      <ShellDePainel
+        produto="AUREA"
+        contexto="Administração"
+        secoes={SECOES}
+        caminhoAtual={caminho}
+        rodape={
+          <div className="flex flex-col gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-[var(--color-texto)]">
+                {usuario?.nome}
+              </p>
+              <p className="text-xs text-[var(--color-texto-fraco)]">Orientação clínica</p>
             </div>
-          }
-        />
-
-        <main className="min-w-0 flex-1 overflow-x-hidden px-8 py-7">
-          <div className="mx-auto max-w-[80rem]">{children}</div>
-        </main>
-      </div>
+            <Botao variante="secundario" tamanho="compacto" onClick={encerrar}>
+              Sair
+            </Botao>
+          </div>
+        }
+      >
+        {children}
+      </ShellDePainel>
     </Guarda>
   );
 }

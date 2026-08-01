@@ -31,6 +31,15 @@ const LEIS = [
       { padrao: /--color-risco-/, motivo: 'token da escala de risco usado no app do paciente' },
       { padrao: /\bClassificacao\b/, motivo: 'tipo de classificação usado no app do paciente' },
       { padrao: /\bregrasDisparadas\b/, motivo: 'explicação por regra exposta ao paciente' },
+      /* O app do paciente passou a usar `CartaoDeIndicador`, que aceita `tom` para os
+         contadores da escala no painel da equipe. O token de risco mora no componente,
+         não na tela — então a regra do `--color-risco-` acima não pegaria um
+         `tom="vermelho"` escrito aqui. Esta pega. `Aviso tom="grave"` continua livre:
+         "grave" é gravidade de mensagem, não classificação clínica. */
+      {
+        padrao: /\btom=\{?["']?(verde|amarelo|vermelho|silencio)\b/,
+        motivo: 'indicador com tom da escala de risco no app do paciente',
+      },
     ],
   },
   {
@@ -40,6 +49,19 @@ const LEIS = [
       {
         padrao: /--color-risco-[a-z]+\)\s*\]?\s*(?:hover|group-hover)/,
         motivo: 'token de risco usado em estado de hover (decoração)',
+      },
+    ],
+  },
+  {
+    nome: 'ADR-005 — cor de dado não classifica',
+    escopo: /^src\//,
+    proibido: [
+      /* Rede, não prova. Pega o erro realista — alguém pintando classificação com a
+         paleta fria porque "ficou bonito". A trava forte é a regra 3 do ADR-005: série
+         de gráfico não aceita cor arbitrária, a cor sai de `CORES_DE_DADO` por índice. */
+      {
+        padrao: /--color-dado-[a-z0-9-]*\)?[^\n]*\b(situacao|classificacao|classificação|risco|FAIXAS)\b/i,
+        motivo: 'paleta de dados usada para pintar classificação clínica',
       },
     ],
   },

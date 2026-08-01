@@ -13,16 +13,17 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Guarda } from '@/componentes/sistema/guarda';
+import { AcaoDoTopo, Icone, type NomeDeIcone } from '@/componentes/sistema/painel';
 import { juntar } from '@/componentes/sistema/primitivos';
 import { useSessao } from '@/sistema/sessao';
 
 const DESTINOS = [
-  { href: '/app', rotulo: 'Hoje' },
-  { href: '/app/historico', rotulo: 'Histórico' },
-  { href: '/app/agenda', rotulo: 'Agenda' },
-  { href: '/app/biblioteca', rotulo: 'Biblioteca' },
-  { href: '/app/conta', rotulo: 'Conta' },
-] as const;
+  { href: '/app', rotulo: 'Hoje', icone: 'hoje' },
+  { href: '/app/historico', rotulo: 'Histórico', icone: 'historico' },
+  { href: '/app/agenda', rotulo: 'Agenda', icone: 'agenda' },
+  { href: '/app/biblioteca', rotulo: 'Biblioteca', icone: 'orientacao' },
+  { href: '/app/conta', rotulo: 'Conta', icone: 'conta' },
+] as const satisfies readonly { href: string; rotulo: string; icone: NomeDeIcone }[];
 
 export default function LayoutDoPaciente({ children }: { children: React.ReactNode }) {
   const caminho = usePathname();
@@ -32,33 +33,43 @@ export default function LayoutDoPaciente({ children }: { children: React.ReactNo
   return (
     <Guarda perfil="PACIENTE">
       <div className="flex min-h-dvh flex-col bg-[var(--color-superficie)]">
-        <header className="border-b border-[var(--color-borda)] px-5 py-4">
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-[var(--color-texto-fraco)]">
-                AUREA
-              </p>
-              <p className="text-sm text-[var(--color-texto-suave)]">
-                {usuario?.nome ?? ''}
-              </p>
+        {/* Mesma barra do topo dos painéis: 3.75rem, branca, filete embaixo, ação em
+            botão redondo à direita. O que muda é o conteúdo, e a diferença é o produto
+            inteiro — no painel o topo diz em que TELA a pessoa está, porque quem está
+            de plantão troca de tela dezenas de vezes por turno; aqui diz QUEM a pessoa
+            é, porque ela abre o app uma vez por dia e a tela em que está já é dita pela
+            barra de baixo. Duplicar o título aqui seria ruído em 390px. */}
+        <header className="flex h-[3.75rem] shrink-0 items-center border-b border-[var(--color-borda)] bg-[var(--color-superficie-alta)] px-5">
+          <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] bg-[var(--color-verde-profundo)] font-mono text-xs font-semibold text-[var(--color-lime)]">
+                A
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold leading-tight text-[var(--color-texto)]">
+                  {usuario?.nome ?? 'AUREA'}
+                </p>
+                <p className="truncate text-xs leading-tight text-[var(--color-texto-fraco)]">
+                  Acompanhamento diário
+                </p>
+              </div>
             </div>
-            <Link
-              href="/app/notificacoes"
-              className="rounded-[var(--radius-sistema)] px-3 py-2 text-sm text-[var(--color-texto-suave)] transition-colors hover:bg-[var(--color-superficie-baixa)] hover:text-[var(--color-texto)]"
-            >
-              Avisos
-            </Link>
+            <AcaoDoTopo titulo="Avisos" href="/app/notificacoes" icone="aviso" />
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-6 pb-28">{children}</main>
 
+        {/* A barra de baixo é o equivalente da lateral dos painéis, virada para o
+            polegar. Ganhou os ícones do mesmo conjunto e o mesmo estado ativo em bloco
+            preenchido — antes era um tracinho de 2px acima do rótulo, que num celular
+            de 390px praticamente não se enxerga. */}
         <nav
           aria-label="Navegação principal"
-          className="fixed inset-x-0 bottom-0 border-t border-[var(--color-borda)] bg-[var(--color-superficie)]"
+          className="fixed inset-x-0 bottom-0 border-t border-[var(--color-borda)] bg-[var(--color-superficie-alta)] pb-[env(safe-area-inset-bottom)]"
         >
-          <ul className="mx-auto flex max-w-2xl">
-            {DESTINOS.map(({ href, rotulo }) => {
+          <ul className="mx-auto flex max-w-2xl px-2 py-2">
+            {DESTINOS.map(({ href, rotulo, icone }) => {
               const ativo = href === '/app' ? caminho === href : caminho.startsWith(href);
               return (
                 <li key={href} className="flex-1">
@@ -66,18 +77,14 @@ export default function LayoutDoPaciente({ children }: { children: React.ReactNo
                     href={href}
                     aria-current={ativo ? 'page' : undefined}
                     className={juntar(
-                      'flex flex-col items-center gap-1 py-3 text-xs transition-colors',
+                      'flex flex-col items-center gap-1 rounded-[0.625rem] py-2 text-xs',
+                      'transition-colors duration-150',
                       ativo
-                        ? 'text-[var(--color-texto)] font-medium'
+                        ? 'bg-[var(--color-nav-ativo)] font-medium text-[var(--color-texto)]'
                         : 'text-[var(--color-texto-fraco)]',
                     )}
                   >
-                    <span
-                      className={juntar(
-                        'h-0.5 w-6 rounded-full transition-colors',
-                        ativo ? 'bg-[var(--color-superficie-invertida)]' : 'bg-transparent',
-                      )}
-                    />
+                    <Icone nome={icone} />
                     {rotulo}
                   </Link>
                 </li>

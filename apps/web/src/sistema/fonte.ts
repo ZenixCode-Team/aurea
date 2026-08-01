@@ -35,6 +35,7 @@ import {
 } from './sinteticos';
 import type {
   CartaoDoPainel,
+  PacienteAcompanhado,
   Classificacao,
   ConjuntoResumido,
   DiaDoHistorico,
@@ -399,6 +400,42 @@ export async function buscarPacientesDoDia(
   return { cards: dados.cards.filter((c) => c.situacao === filtro), resumo: dados.resumo };
 }
 
+/**
+ * Todos os pacientes acompanhados.
+ *
+ * Sem espelho sintético próprio: em modo sintético a lista é derivada dos mesmos
+ * pacientes do dia, com os campos de cadastro em branco. Inventar responsável, telefone
+ * e diagnóstico plausíveis seria criar dado de saúde falso que passa por verdadeiro na
+ * primeira captura de tela de apresentação — e este projeto tem regra explícita sobre
+ * isso no README.
+ */
+export async function buscarTodosOsPacientes(): Promise<readonly PacienteAcompanhado[]> {
+  if (!usandoApi) {
+    return comAtraso(
+      PACIENTES_DO_DIA_SINTETICOS.cards.map((cartao) => ({
+        id: cartao.pacienteId,
+        nome: cartao.nome,
+        dataNascimento: null,
+        sexo: 'NAO_INFORMADO' as const,
+        diagnostico: '—',
+        convenio: null,
+        protocolo: cartao.protocolo,
+        emTratamento: true,
+        diaDoCiclo: cartao.diaDoCiclo,
+        numeroDoCiclo: null,
+        medicoAssistente: null,
+        responsavel: null,
+        ultimaVisita: null,
+        ultimoCheckinEm: null,
+        respondeuHoje: cartao.respondeuHoje,
+      })),
+    );
+  }
+
+  const pagina = await chamar<PaginaDaApi<PacienteAcompanhado>>('/painel/pacientes');
+  return pagina.itens;
+}
+
 /* --- O histórico do painel: onde a API e a tela mais divergem --- */
 
 interface RespostaCruaDaApi {
@@ -431,6 +468,27 @@ interface HistoricoCruDaApi {
   readonly id: string;
   readonly nome: string;
   readonly diagnostico: string;
+  readonly dataNascimento: string | null;
+  readonly sexo: 'FEMININO' | 'MASCULINO' | 'NAO_INFORMADO';
+  readonly convenio: string | null;
+  readonly medicoAssistente: { readonly nome: string; readonly funcao: string } | null;
+  readonly protocolo: string | null;
+  readonly numeroDoCiclo: number | null;
+  readonly diaDoCiclo: number | null;
+  readonly contatos: readonly {
+    readonly tipo: 'CONTATO_DO_PACIENTE' | 'CONTATO_DE_EMERGENCIA';
+    readonly nome: string;
+    readonly telefone: string;
+    readonly relacao: string | null;
+  }[];
+  readonly prescricoes: readonly {
+    readonly id: string;
+    readonly posologia: string;
+    readonly iniciadaEm: string;
+    readonly encerradaEm: string | null;
+    readonly medicamento: { readonly nome: string; readonly principioAtivo: string | null };
+    readonly prescritaPor: { readonly nome: string; readonly funcao: string } | null;
+  }[];
   readonly sessoesDeTriagem: readonly {
     readonly id: string;
     readonly iniciadaEm: string;
@@ -548,9 +606,35 @@ export async function buscarHistoricoNoPainel(
       id: cru.id,
       nome: cru.nome,
       diagnostico: cru.diagnostico,
-      protocolo: null,
-      diaDoCiclo: sessoes[0]?.diaDoCiclo ?? null,
+      protocolo: cru.protocolo ?? null,
+      numeroDoCiclo: cru.numeroDoCiclo ?? null,
+      /* Dia do ciclo HOJE, vindo da API. Antes saía da sessão mais recente — o que
+         mostrava o dia do último check-in, não o dia de hoje, e divergia da lista de
+         pacientes quando a pessoa passava dois dias sem responder. */
+      diaDoCiclo: cru.diaDoCiclo ?? null,
+      dataNascimento: cru.dataNascimento ?? null,
+      sexo: cru.sexo ?? 'NAO_INFORMADO',
+      convenio: cru.convenio ?? null,
+      medicoAssistente: cru.medicoAssistente?.nome ?? null,
+      contatos: (cru.contatos ?? []).map((contato) => ({
+        nome: contato.nome,
+        telefone: contato.telefone,
+        relacao: contato.relacao,
+        deEmergencia: contato.tipo === 'CONTATO_DE_EMERGENCIA',
+      })),
     },
+    /* Receitas em vigor primeiro. A API já devolve nessa ordem; repetir a regra aqui
+       seria duas verdades sobre a mesma coisa. */
+    prescricoes: (cru.prescricoes ?? []).map((prescricao) => ({
+      id: prescricao.id,
+      medicamento: prescricao.medicamento.nome,
+      principioAtivo: prescricao.medicamento.principioAtivo,
+      posologia: prescricao.posologia,
+      iniciadaEm: prescricao.iniciadaEm,
+      encerradaEm: prescricao.encerradaEm,
+      prescritaPor: prescricao.prescritaPor?.nome ?? null,
+      emVigor: prescricao.encerradaEm === null,
+    })),
     sessoes,
   };
 }

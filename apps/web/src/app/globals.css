@@ -25,8 +25,11 @@
 
   /* --- Tipografia: triad funcional --- */
   --font-display: var(--fonte-display), Georgia, serif;
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--fonte-sans), system-ui, sans-serif;
+  --font-mono: var(--fonte-mono), ui-monospace, monospace;
+  /* Título do sistema — do /entrar pra dentro. A landing continua com o display
+     serif, que é o imprint da ref. Ver o comentário da fonte em `layout.tsx`. */
+  --font-titulo: var(--fonte-titulo), var(--fonte-sans), system-ui, sans-serif;
 
   /* --- Motion --- */
   --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
@@ -75,6 +78,46 @@
   --color-risco-silencio: #6b7a70;
   --color-risco-silencio-fundo: #eceee9;
 
+  /* ======================================================================
+     PALETA DE DADOS — não-clínica (ADR-005)
+
+     Existe para gráfico de volume, série temporal, distribuição por categoria
+     operacional: quantos acessos por dia, quantos check-ins por semana, quantas
+     solicitações por tipo. Nada aqui classifica paciente.
+
+     A regra que define a paleta é de MATIZ, não de gosto. A escala de triagem
+     ocupa a faixa quente do círculo — vermelho 12°, âmbar 38°, verde 78°. Toda cor
+     de dado mora entre 185° e 330°, do outro lado. Não é para "combinar": é para
+     que nenhuma barra de gráfico possa ser confundida com classificação de risco
+     nem por engano, nem de relance, nem por quem enxerga cor de outro jeito.
+
+     O efeito colateral é proposital: a paleta é FRIA sobre superfície creme, e
+     parece de outro lugar. Gráfico neste produto deve mesmo parecer de outro
+     lugar — é informação de operação, não sinal clínico.
+
+     Evitar vermelho e verde de saída também resolve deuteranopia de graça: a
+     confusão mais comum simplesmente não tem como acontecer aqui.
+
+     PROIBIDO: usar `--color-dado-*` para pintar classificação, e usar
+     `--color-risco-*` em gráfico. `scripts/conformidade.mjs` pega o primeiro caso.
+     ====================================================================== */
+  --color-dado-1: #35597f; /* azul-aço      · 205° */
+  --color-dado-2: #2f6f74; /* petróleo      · 185° */
+  --color-dado-3: #4c4a86; /* índigo        · 245° */
+  --color-dado-4: #74477a; /* ameixa        · 292° */
+  --color-dado-5: #8a4668; /* vinho-rosa    · 330° */
+  /* Sexta série e categoria "outros". Saturação baixíssima de propósito: qualquer
+     coisa mais saturada nesta posição cairia na faixa quente. */
+  --color-dado-neutro: #6f6f72;
+
+  /* Preenchimentos claros das mesmas séries, para área e fundo de barra. */
+  --color-dado-1-fundo: #e4ecf4;
+  --color-dado-2-fundo: #e0eeee;
+  --color-dado-3-fundo: #e8e7f3;
+  --color-dado-4-fundo: #f1e8f3;
+  --color-dado-5-fundo: #f5e6ed;
+  --color-dado-neutro-fundo: #ececed;
+
   /* Ritmo vertical — o painel é denso de propósito, o app respira */
   --espaco-denso: 0.5rem;
   --espaco-padrao: 1rem;
@@ -96,9 +139,12 @@
      Deliberadamente fora da escala de risco. A barra lateral é mobília: se ela
      usar sage, âmbar ou terracota, o único sinal que importa na tela — a cor da
      classificação — perde a exclusividade e vira mais uma cor bonita. */
-  --color-nav-fundo: #f0efe4;
-  --color-nav-ativo: #1c2b21;
-  --color-nav-hover: rgba(20, 32, 26, 0.06);
+  /* A barra é branca, igual às superfícies de conteúdo: quem separa as áreas é o
+     filete, não a mudança de tom. Bege na navegação empurrava a barra para frente
+     do conteúdo, que é o contrário do que um painel clínico precisa. */
+  --color-nav-fundo: #ffffff;
+  --color-nav-ativo: rgba(20, 32, 26, 0.075);
+  --color-nav-hover: rgba(20, 32, 26, 0.04);
 }
 
 /* ==========================================================================
@@ -150,6 +196,21 @@ body {
   font-weight: 400;
   line-height: 0.94;
   letter-spacing: -0.02em;
+}
+
+/* Título do sistema — SÓ EM `h1`.
+   `wdth` levemente estreitado e tracking negativo: a Bricolage abre muito na largura
+   padrão, e título de painel precisa caber ao lado de um botão de ação.
+
+   A restrição ao `h1` é regra, não preferência: um `h1` por tela usa a assinatura uma
+   vez e ela lê como assinatura. Repetida nos títulos de bloco — cinco na mesma tela, em
+   17px — a mesma idiossincrasia vira ruído, e o nível dois passa a competir com o
+   nível um em vez de se subordinar a ele. Do `h2` para baixo, hierarquia é peso da sans. */
+.titulo {
+  font-family: var(--font-titulo);
+  font-variation-settings: "wdth" 95;
+  letter-spacing: -0.025em;
+  font-weight: 600;
 }
 
 /* Rótulo de seção — assinatura que funde as duas refs:

@@ -288,6 +288,52 @@ export interface SessaoNoHistorico {
   readonly intervencoes: readonly Intervencao[];
 }
 
+/**
+ * Uma linha da lista completa de pacientes do plantão.
+ *
+ * O recorte responde à pergunta que a enfermagem faz antes de ligar para alguém: quem é,
+ * o que tem, quem cuida em casa, qual o telefone e quando esteve aqui pela última vez.
+ * Nada aqui é classificação — a escala continua vivendo só onde há check-in do dia.
+ */
+export interface PacienteAcompanhado {
+  readonly id: string;
+  readonly nome: string;
+  readonly dataNascimento: string | null;
+  readonly sexo: 'FEMININO' | 'MASCULINO' | 'NAO_INFORMADO';
+  readonly diagnostico: string;
+  readonly convenio: string | null;
+  readonly protocolo: string | null;
+  readonly emTratamento: boolean;
+  readonly diaDoCiclo: number | null;
+  readonly numeroDoCiclo: number | null;
+  readonly medicoAssistente: string | null;
+  readonly responsavel: {
+    readonly nome: string;
+    readonly telefone: string;
+    readonly relacao: string | null;
+    readonly deEmergencia: boolean;
+  } | null;
+  readonly ultimaVisita: {
+    readonly tipo: TipoDeEvento;
+    readonly aconteceEm: string;
+    readonly local: string | null;
+  } | null;
+  readonly ultimoCheckinEm: string | null;
+  readonly respondeuHoje: boolean;
+}
+
+/** Uma receita do paciente, como a enfermagem precisa ler ao telefone. */
+export interface PrescricaoDoPaciente {
+  readonly id: string;
+  readonly medicamento: string;
+  readonly principioAtivo: string | null;
+  readonly posologia: string;
+  readonly iniciadaEm: string;
+  readonly encerradaEm: string | null;
+  readonly prescritaPor: string | null;
+  readonly emVigor: boolean;
+}
+
 export interface HistoricoDoPaciente {
   readonly paciente: {
     readonly id: string;
@@ -295,7 +341,21 @@ export interface HistoricoDoPaciente {
     readonly diagnostico: string;
     readonly protocolo: string | null;
     readonly diaDoCiclo: number | null;
+    readonly numeroDoCiclo?: number | null;
+    readonly dataNascimento?: string | null;
+    readonly sexo?: 'FEMININO' | 'MASCULINO' | 'NAO_INFORMADO';
+    readonly convenio?: string | null;
+    readonly medicoAssistente?: string | null;
+    readonly contatos?: readonly {
+      readonly nome: string;
+      readonly telefone: string;
+      readonly relacao: string | null;
+      readonly deEmergencia: boolean;
+    }[];
   };
+  /* Opcional porque o espelho sintético não tem receita — e inventar posologia
+     plausível em dado de demonstração é o tipo de coisa que vaza para apresentação. */
+  readonly prescricoes?: readonly PrescricaoDoPaciente[];
   readonly sessoes: readonly SessaoNoHistorico[];
 }
 
