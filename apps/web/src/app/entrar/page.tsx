@@ -15,7 +15,7 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import { FundoOrganico } from '@/components/fundo-organico';
+import { GradienteAnimado } from '@/components/gradiente-animado';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Aviso, Botao, Campo, Rotulo } from '@/componentes/sistema/primitivos';
@@ -182,27 +182,24 @@ export default function EntrarPage() {
       </div>
 
       {/*
-        Painel institucional com o MESMO campo da hero da landing.
+        Painel institucional — campo de gradiente animado no verde da marca.
 
         Nas refs este espaço é foto ou arte de marca. Foto de paciente seria a escolha
-        errada num produto que ainda não passou pelo Comitê de Ética — e usar o shader
-        da hero resolve melhor: quem entra vem da landing, e reencontrar o mesmo verde
+        errada num produto que ainda não passou pelo Comitê de Ética — e o campo em
+        WebGL resolve melhor: quem entra vem da landing, e reencontrar o mesmo verde
         ondulando faz a porta parecer parte da mesma casa, em vez de um formulário que
         por acaso tem a cor certa.
 
-        O componente já roda com deriva reduzida a um quarto e cursor desligado: massa
-        de cor derivando devagar não é gatilho vestibular, e este produto atende gente
-        em quimioterapia.
+        Preset `Aurea`: as três massas são as mesmas cores do campo da hero, então a
+        troca de shader não trocou a paleta. Velocidade 8 e `prefers-reduced-motion`
+        respeitado dentro do componente — este produto atende gente em quimioterapia,
+        e massa de cor derivando devagar não é gatilho vestibular.
       */}
       <aside
         aria-hidden
         className="relative hidden overflow-hidden bg-[var(--color-verde-profundo)] lg:block lg:flex-1"
       >
-        {/* Escalas maiores que as da hero: aqui o campo tem 832px de largura, e com
-            a escala original as quatro massas ficam grandes demais para o quadro —
-            o resultado é verde chapado em vez do campo ondulando. Comprimir a escala
-            traz de volta a variação que a hero tem em tela cheia. */}
-        <FundoOrganico escalas={[2.6, 2.2, 3.1, 2.4]} />
+        <GradienteAnimado config={{ preset: 'Aurea' }} />
         <div className="grain absolute inset-0" />
         {/*
           Véu de contraste. O campo é animado: a mesma área passa de verde escuro a

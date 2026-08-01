@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
-import { FundoOrganico } from "../fundo-organico";
+import { GradienteAnimado } from "../gradiente-animado";
 import { HaloCursor } from "../halo-cursor";
 
 /**
@@ -50,9 +50,11 @@ export function Hero() {
       data-cor-fundo="#8fa05e"
       className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden"
     >
-      {/* Camada 1 — o campo. Fica atrás de tudo. */}
+      {/* Camada 1 — o campo. Fica atrás de tudo.
+          Preset `AureaClara`: mesma paleta de antes (vale · base · crista), shader
+          novo. Claro de propósito — ver o comentário do preset. */}
       <motion.div style={{ scale: escala }} className="absolute inset-0">
-        <FundoOrganico />
+        <GradienteAnimado config={{ preset: "AureaClara" }} />
       </motion.div>
 
       {/* Três frases escalonadas, com filete no vão de cada uma. */}
