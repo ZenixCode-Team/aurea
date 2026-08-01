@@ -24,6 +24,121 @@ export async function rotasDoPainel(app: FastifyInstance) {
   };
 
   /**
+   * Todos os pacientes acompanhados — o prontuário de bolso da enfermagem.
+   *
+   * Nasceu ao lado de `pacientes-do-dia` e resolve a pergunta oposta. Aquela responde
+   * "quem precisa de mim AGORA" e por isso só traz quem tem ciclo em andamento. Esta
+   * responde "quem são as pessoas sob nossos cuidados", inclusive quem terminou o
+   * tratamento e quem ainda não começou — que somem inteiramente da outra tela.
+   *
+   * Traz o suficiente para decidir sem abrir o detalhe: diagnóstico, quem cuida em
+   * casa, telefone, última passagem pelo serviço. O detalhe continua sendo uma
+   * navegação, não um pré-requisito.
+   *
+   * `registrarAcesso` é obrigatório aqui como em toda leitura de prontuário — LGPD,
+   * e a lista inteira é leitura de dado de saúde de várias pessoas de uma vez.
+   */
+  app.get('/painel/pacientes', comAcesso, async (requisicao) => {
+    const usuario = usuarioDa(requisicao);
+    const agora = new Date();
+
+    const pacientes = await prisma.paciente.findMany({
+      orderBy: { nome: 'asc' },
+      select: {
+        id: true,
+        nome: true,
+        dataNascimento: true,
+        sexo: true,
+        diagnostico: true,
+        convenio: true,
+        medicoAssistente: { select: { nome: true, funcao: true } },
+        contatos: {
+          select: { tipo: true, nome: true, telefone: true, relacao: true },
+          orderBy: { criadoEm: 'asc' },
+        },
+        tratamentos: {
+          where: { encerradoEm: null },
+          orderBy: { iniciadoEm: 'desc' },
+          take: 1,
+          select: {
+            protocolo: { select: { nome: true } },
+            ciclos: {
+              orderBy: { sessaoRealizadaEm: 'desc' },
+              take: 1,
+              select: { numero: true, sessaoRealizadaEm: true },
+            },
+          },
+        },
+        /* Última passagem pelo serviço: o evento de agenda mais recente que já
+           aconteceu. Não é a sessão de quimio do ciclo — consulta médica, nutrição e
+           psicologia também são visita, e a enfermagem precisa saber quando a pessoa
+           esteve aqui por qualquer motivo. */
+        eventosDeAgenda: {
+          where: { aconteceEm: { lte: agora } },
+          orderBy: { aconteceEm: 'desc' },
+          take: 1,
+          select: { tipo: true, aconteceEm: true, local: true },
+        },
+        sessoesDeTriagem: {
+          orderBy: { iniciadaEm: 'desc' },
+          take: 1,
+          select: { iniciadaEm: true, estado: true },
+        },
+      },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'LEITURA_DE_PACIENTE',
+      usuarioId: usuario.id,
+    });
+
+    return {
+      itens: pacientes.map((paciente) => {
+        const tratamento = paciente.tratamentos[0] ?? null;
+        const ciclo = tratamento?.ciclos[0] ?? null;
+        const ultimaVisita = paciente.eventosDeAgenda[0] ?? null;
+        const ultimoCheckin = paciente.sessoesDeTriagem[0] ?? null;
+
+        /* Quem cuida em casa é o contato de emergência quando existe; senão, o
+           primeiro contato cadastrado. Devolver os dois seria empurrar a decisão
+           para a tela, e a tela não tem contexto clínico para escolher. */
+        const responsavel =
+          paciente.contatos.find((contato) => contato.tipo === 'CONTATO_DE_EMERGENCIA') ??
+          paciente.contatos[0] ??
+          null;
+
+        return {
+          id: paciente.id,
+          nome: paciente.nome,
+          dataNascimento: paciente.dataNascimento,
+          sexo: paciente.sexo,
+          diagnostico: paciente.diagnostico,
+          convenio: paciente.convenio,
+          protocolo: tratamento?.protocolo.nome ?? null,
+          emTratamento: tratamento !== null,
+          diaDoCiclo: ciclo ? calcularDiaDoCiclo(ciclo.sessaoRealizadaEm, agora) : null,
+          numeroDoCiclo: ciclo?.numero ?? null,
+          medicoAssistente: paciente.medicoAssistente?.nome ?? null,
+          responsavel: responsavel
+            ? {
+                nome: responsavel.nome,
+                telefone: responsavel.telefone,
+                relacao: responsavel.relacao,
+                deEmergencia: responsavel.tipo === 'CONTATO_DE_EMERGENCIA',
+              }
+            : null,
+          ultimaVisita: ultimaVisita
+            ? { tipo: ultimaVisita.tipo, aconteceEm: ultimaVisita.aconteceEm, local: ultimaVisita.local }
+            : null,
+          ultimoCheckinEm: ultimoCheckin?.iniciadaEm ?? null,
+          respondeuHoje: ultimoCheckin ? mesmoDia(ultimoCheckin.iniciadaEm, agora) : false,
+        };
+      }),
+      proximoCursor: null,
+    };
+  });
+
+  /**
    * Pacientes do dia.
    *
    * A lista é construída a partir de quem DEVERIA ter respondido hoje, não de quem
@@ -139,10 +254,50 @@ export async function rotasDoPainel(app: FastifyInstance) {
         id: true,
         nome: true,
         dataNascimento: true,
+        sexo: true,
+        convenio: true,
         diagnostico: true,
         habitoIntestinalBasal: true,
+        medicoAssistente: { select: { nome: true, funcao: true } },
         alergias: { select: { descricao: true, origem: true, confirmadaEm: true } },
         contatos: { select: { tipo: true, nome: true, telefone: true, relacao: true } },
+        /* Receitas em vigor primeiro, encerradas depois — a enfermagem que liga para o
+           paciente precisa saber o que ele TOMA, e o que ele tomava é contexto. Quem
+           prescreveu vem junto porque a dúvida seguinte é sempre "com quem eu falo". */
+        prescricoes: {
+          orderBy: [{ encerradaEm: 'asc' }, { iniciadaEm: 'desc' }],
+          select: {
+            id: true,
+            posologia: true,
+            iniciadaEm: true,
+            encerradaEm: true,
+            medicamento: { select: { nome: true, principioAtivo: true } },
+            prescritaPor: { select: { nome: true, funcao: true } },
+          },
+        },
+        eventosDeAgenda: {
+          orderBy: { aconteceEm: 'desc' },
+          take: 8,
+          select: { id: true, tipo: true, aconteceEm: true, local: true },
+        },
+        /* O tratamento em curso. Faltava aqui, e a consequência era o prontuário
+           mostrar "Protocolo: não informado" e "Dia do ciclo: —" para um paciente que
+           a lista ao lado exibia como "ciclo 3 · dia 5". Dois caminhos para o mesmo
+           dado, um deles cego — o tipo de divergência que faz a equipe deixar de
+           confiar na tela. */
+        tratamentos: {
+          where: { encerradoEm: null },
+          orderBy: { iniciadoEm: 'desc' },
+          take: 1,
+          select: {
+            protocolo: { select: { nome: true } },
+            ciclos: {
+              orderBy: { sessaoRealizadaEm: 'desc' },
+              take: 1,
+              select: { numero: true, sessaoRealizadaEm: true },
+            },
+          },
+        },
         sessoesDeTriagem: {
           orderBy: { iniciadaEm: 'desc' },
           take: 60,
@@ -168,7 +323,18 @@ export async function rotasDoPainel(app: FastifyInstance) {
       pacienteId: paciente.id,
     });
 
-    return paciente;
+    const tratamento = paciente.tratamentos[0] ?? null;
+    const ciclo = tratamento?.ciclos[0] ?? null;
+
+    /* `diaDoCiclo` do paciente é HOJE, calculado com `calcularDiaDoCiclo` — o mesmo
+       número que a lista mostra. Não confundir com o `diaDoCiclo` de cada sessão, que
+       é o dia em que AQUELE check-in aconteceu e continua vindo por sessão. */
+    return {
+      ...paciente,
+      protocolo: tratamento?.protocolo.nome ?? null,
+      numeroDoCiclo: ciclo?.numero ?? null,
+      diaDoCiclo: ciclo ? calcularDiaDoCiclo(ciclo.sessaoRealizadaEm, new Date()) : null,
+    };
   });
 
   const intervencaoSchema = z.object({
