@@ -8,9 +8,17 @@ import {
   type Classificacao,
   type Sintoma,
 } from '@aurea/contratos';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { conflito, naoEncontrado, requisicaoInvalida, semPermissao } from '../erros.js';
 import { exigirPaciente } from '../autenticacao/plugin.js';
+import { calcularDiaDoCiclo } from '../tempo.js';
+import {
+  fatiaDoCursor,
+  lerPaginacao,
+  montarPagina,
+  type ChaveDeOrdenacao,
+} from '../servicos/paginacao.js';
 import { classificarSessao, cicloAtualDoPaciente } from '../servicos/triagem.js';
 import { avisarEnfermagem, entregarOrientacoes } from '../servicos/orientacao.js';
 
@@ -197,19 +205,74 @@ export async function rotasDeTriagem(app: FastifyInstance) {
   });
 
   /** Últimos check-ins do próprio paciente. */
+  /**
+   * Histórico do próprio paciente.
+   *
+   * Esta rota carregava três defeitos, corrigidos juntos porque são o mesmo descuido:
+   *
+   * 1. **Devolvia array cru.** Todo o resto do sistema devolve `{ itens, proximoCursor }`,
+   *    e o aplicativo lê `pagina.itens`. Contra a API real a tela de histórico não
+   *    carregava — passava despercebido porque as ondas de frontend rodaram em modo
+   *    sintético.
+   * 2. **Mandava a classificação para o paciente.** `classificacoes { resultado, situacao }`
+   *    atravessava a rede: VERMELHO, AMARELO, VERDE. A tela não desenhava, mas qualquer
+   *    devtools mostrava. A lei 1 do produto é imposta POR TIPO justamente para não
+   *    depender de a tela lembrar de não mostrar — e aqui o tipo carregava o campo. A
+   *    rota nem usava a classificação para nada do que devolvia.
+   * 3. **Não mandava as respostas.** O aplicativo monta "o que você relatou naquele dia"
+   *    a partir de `respostas`, que não vinham no `include`. Mesmo com o envelope certo,
+   *    a tela quebraria na linha seguinte.
+   *
+   * `diaDoCiclo` é derivado com `calcularDiaDoCiclo` a partir da data da sessão de
+   * quimioterapia do ciclo, nunca lido de coluna — é a mesma regra do resto da API, e a
+   * conta de calendário mora inteira em `tempo.ts`.
+   */
   app.get('/triagem/historico', autenticado, async (requisicao) => {
     const pacienteId = exigirPaciente(requisicao);
+    const parametros = lerPaginacao(requisicao.query);
 
-    return prisma.sessaoDeTriagem.findMany({
-      where: { pacienteId },
-      orderBy: { iniciadaEm: 'desc' },
-      take: 30,
-      include: {
-        classificacoes: {
-          where: { origem: 'ORIGINAL' },
-          select: { resultado: true, situacao: true, calculadaEm: true },
+    const chave: ChaveDeOrdenacao = { campo: 'iniciadaEm', direcao: 'desc', tipo: 'data' };
+    const fatia = fatiaDoCursor<
+      Prisma.SessaoDeTriagemWhereInput,
+      Prisma.SessaoDeTriagemOrderByWithRelationInput
+    >(chave, parametros);
+
+    const linhas = await prisma.sessaoDeTriagem.findMany({
+      where: { pacienteId, ...(fatia.filtro ? { AND: [fatia.filtro] } : {}) },
+      orderBy: fatia.ordenacao,
+      take: fatia.quantidade,
+      select: {
+        id: true,
+        iniciadaEm: true,
+        concluidaEm: true,
+        estado: true,
+        ciclo: { select: { sessaoRealizadaEm: true } },
+        respostas: {
+          select: {
+            sintoma: true,
+            campo: true,
+            valorNumerico: true,
+            valorBooleano: true,
+            valorTexto: true,
+          },
         },
       },
     });
+
+    const pagina = montarPagina(linhas, chave, parametros);
+
+    return {
+      proximoCursor: pagina.proximoCursor,
+      itens: pagina.itens.map((sessao) => ({
+        id: sessao.id,
+        iniciadaEm: sessao.iniciadaEm,
+        concluidaEm: sessao.concluidaEm,
+        estado: sessao.estado,
+        diaDoCiclo: sessao.ciclo
+          ? calcularDiaDoCiclo(sessao.ciclo.sessaoRealizadaEm, sessao.iniciadaEm)
+          : null,
+        respostas: sessao.respostas,
+      })),
+    };
   });
 }
