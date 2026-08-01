@@ -1,35 +1,64 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Familjen_Grotesk,
+  IBM_Plex_Mono,
+  Instrument_Serif,
+} from "next/font/google";
 import "./globals.css";
 import { ProvedorDeSessao } from "@/sistema/sessao";
 
 /**
- * Instrument Sans na interface — e não a Geist, que estava aqui antes.
+ * Familjen Grotesk no corpo da interface.
  *
- * A Geist é competente e é o default da Vercel, o que a torna a fonte que todo
- * produto feito por desenvolvedor usa. A Instrument Sans tem a mesma legibilidade em
- * corpo pequeno e mais caráter no peso alto, com terminais levemente cortados que
- * seguram bem títulos grandes.
+ * Quarta fonte nesta posição. O padrão das três anteriores era o mesmo: Geist, Instrument
+ * Sans e Schibsted são todas neo-grotescas neutras, e neutro é exatamente o que faz um
+ * produto parecer template. Uma grotesca sem assinatura resolve legibilidade e não
+ * resolve identidade.
  *
- * O motivo principal, porém, é de sistema: a landing já usa Instrument Serif. Usar a
- * irmã sans faz das duas uma família só, em vez de duas escolhas que por acaso
- * convivem.
+ * A Familjen é humanista, não neo-grotesca — e a diferença aparece nas letras que mais
+ * se repetem em português: `a` de gota com barriga assimétrica, `g` de orelha curva, `e`
+ * de eixo levemente inclinado. Em corpo de 15px numa tabela clínica isso não atrapalha a
+ * leitura; em parágrafo, dá voz.
  */
-const sansDaInterface = Instrument_Sans({
-  variable: "--font-geist-sans",
+const sansDaInterface = Familjen_Grotesk({
+  variable: "--fonte-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
 /**
- * JetBrains Mono para número clínico.
+ * Bricolage Grotesque nos títulos do sistema.
  *
- * Zero cortado, 1 com serifa e 7 sem barra ambígua — em uma tela onde 38,5 e 39,5
- * mudam a conduta, distinguir dígito de relance não é preciosismo tipográfico.
+ * O contraste que faltava. A Bricolage tem largura e peso variáveis e formas
+ * declaradamente idiossincráticas — terminais cortados em ângulo, aberturas estreitas,
+ * `R` de perna reta. É uma fonte que alguém DESENHOU, e é isso que separa um produto de
+ * um template.
+ *
+ * Só em título, nunca em corpo: a mesma idiossincrasia que assina um `h1` de 2rem cansa
+ * numa coluna de tabela. E ela entra no sistema, não na landing — lá o display continua
+ * sendo a Instrument Serif, que é o imprint da ref escolhida pelo João no briefing.
  */
-const monoDosDados = JetBrains_Mono({
-  variable: "--font-geist-mono",
+const tituloDoSistema = Bricolage_Grotesque({
+  variable: "--fonte-titulo",
   subsets: ["latin"],
+  display: "swap",
+});
+
+/**
+ * IBM Plex Mono para número clínico.
+ *
+ * O requisito é clínico antes de ser estético: zero cortado, 1 com serifa e 7 sem barra
+ * ambígua. Numa tela em que 38,5 e 39,5 mudam a conduta, distinguir dígito de relance
+ * não é preciosismo tipográfico.
+ *
+ * Saiu a JetBrains Mono, que cumpria o requisito e trazia junto a aparência de editor
+ * de código. A Plex tem a mesma desambiguação com desenho de origem editorial.
+ */
+const monoDosDados = IBM_Plex_Mono({
+  variable: "--fonte-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -68,7 +97,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${sansDaInterface.variable} ${monoDosDados.variable} ${serifDisplay.variable} h-full antialiased`}
+      className={`${sansDaInterface.variable} ${tituloDoSistema.variable} ${monoDosDados.variable} ${serifDisplay.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <ProvedorDeSessao>{children}</ProvedorDeSessao>

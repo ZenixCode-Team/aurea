@@ -235,7 +235,7 @@ export default function Bancada() {
 
   return (
     <main
-      style={{ fontFamily: 'var(--font-geist-mono), monospace' }}
+      style={{ fontFamily: 'var(--fonte-mono), monospace' }}
       className="mx-auto min-h-screen max-w-3xl bg-white p-6 text-[13px] leading-relaxed text-neutral-900"
     >
       <header className="mb-6 border-b border-neutral-300 pb-4">
