@@ -10,7 +10,7 @@
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "prisma migrate deploy && node dist/servidor.js",
     "typecheck": "prisma generate && tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "test": "vitest run",
     "test:banco": "DATABASE_URL=\"mysql://root@localhost:3306/aurea_teste\" PROVA_DE_BANCO=1 vitest run",
     "prova": "node provas/ponta-a-ponta.mjs",
@@ -38,11 +38,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.5",
+    "eslint": "^9.39.5",
     "prisma": "^6.4.1",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^3.2.4"
   }
 }

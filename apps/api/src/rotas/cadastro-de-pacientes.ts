@@ -4,7 +4,7 @@ import { hash } from 'bcryptjs';
 import { Prisma, Sexo, TipoDeContato } from '@prisma/client';
 import { cpfEhValido, normalizarCpf } from '@aurea/contratos';
 import { prisma } from '../prisma.js';
-import { ErroDaApi, conflito, naoEncontrado, requisicaoInvalida } from '../erros.js';
+import { conflito, naoEncontrado, requisicaoInvalida } from '../erros.js';
 import { exigirPermissao, registrarAcesso, usuarioDa } from '../autenticacao/plugin.js';
 import {
   fatiaDoCursor,

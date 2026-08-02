@@ -102,10 +102,17 @@ Senha única: `aurea-demo-2026`
 ## Verificação
 
 ```bash
-pnpm typecheck                       # 4 projetos
+pnpm verificar     # typecheck + lint + testes + leis clínicas, nessa ordem
+```
+
+É o portão inteiro num comando só — nada entra sem ele passar. Cada etapa também roda
+sozinha, para o ciclo curto:
+
+```bash
+pnpm typecheck     # 4 projetos
 pnpm lint
-pnpm test                            # 61 testes
-cd apps/web && node scripts/conformidade.mjs   # as leis clínicas
+pnpm test          # 61 testes
+pnpm conformidade  # as leis clínicas
 ```
 
 O `conformidade.mjs` falha o processo se qualquer cor de risco vazar para o app do
@@ -116,12 +123,18 @@ leitura humana falha no arquivo 30; isso não falha.
 
 ## Decisões de arquitetura
 
-Em `.maestri/maestro/decisoes/`:
+Em [`docs/decisoes/`](docs/decisoes/) — com índice, estado de cada uma e as três leis
+clínicas que atravessam o sistema inteiro.
 
-- **ADR-001** — o algoritmo como dado versionado
-- **ADR-002** — direção visual da landing
+- **ADR-001** — plataforma e arquitetura: o algoritmo como dado versionado
 - **ADR-003** — monorepo e núcleo da triagem
 - **ADR-004** — direção visual dos painéis internos
+- **ADR-005** — paleta de dados não-clínica
+- **DC-001** — direção criativa da UI do sistema
+
+O ADR-002 é citado no código como "direção visual da landing", mas nunca foi escrito. A
+decisão está viva e mora em comentários de `globals.css`, `hero.tsx` e
+`fundo-organico.tsx`. Dívida documentada em `docs/decisoes/README.md`.
 
 ## Estado
 

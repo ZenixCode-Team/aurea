@@ -122,11 +122,21 @@ async function principal() {
     process.exit(1);
   }
 
+  /* O handler de sinal é síncrono por assinatura: `process.on` descarta o que a função
+     devolve, então uma função `async` aqui é promessa que ninguém aguarda — se o
+     `app.close()` rejeitar, o erro vira `unhandledRejection` e o processo morre sem
+     fechar a conexão do banco. Chamando o desligamento com `void` + `catch` explícito, a
+     falha vira log e o `process.exit` acontece de qualquer jeito. */
+  const desligar = async () => {
+    await app.close();
+    await prisma.$disconnect();
+  };
+
   for (const sinal of ['SIGINT', 'SIGTERM'] as const) {
-    process.on(sinal, async () => {
-      await app.close();
-      await prisma.$disconnect();
-      process.exit(0);
+    process.on(sinal, () => {
+      void desligar()
+        .catch((erro: unknown) => app.log.error(erro))
+        .finally(() => process.exit(0));
     });
   }
 }
