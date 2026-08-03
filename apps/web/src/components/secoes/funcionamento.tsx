@@ -53,7 +53,7 @@ export function Funcionamento() {
             data-revelar
             className="bg-creme p-9 transition-colors duration-500 hover:bg-creme-fundo md:p-12"
           >
-            <span className="rotulo text-ambar">{passo.numero}</span>
+            <span className="rotulo-editorial text-ambar">{passo.numero}</span>
             <h3 className="display mt-5 text-4xl text-tinta md:text-5xl">
               {passo.titulo}
             </h3>

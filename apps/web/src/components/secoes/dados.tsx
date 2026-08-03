@@ -50,7 +50,7 @@ export function Dados() {
               data-revelar
               className="border-b border-tinta/12 py-7 first:border-t first:border-tinta/12"
             >
-              <h3 className="rotulo text-tinta">{garantia.titulo}</h3>
+              <h3 className="rotulo-editorial text-tinta">{garantia.titulo}</h3>
               <p className="mt-4 max-w-[52ch] text-[1.0625rem] leading-relaxed text-tinta-suave">
                 {garantia.corpo}
               </p>

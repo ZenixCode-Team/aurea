@@ -138,7 +138,7 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.95, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="rotulo">Entrar no AUREA</span>
+            <span className="rotulo-editorial">Entrar no AUREA</span>
             <span
               aria-hidden="true"
               className="flex items-center gap-1.5 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-1.5"
@@ -238,7 +238,7 @@ function IndicadorRolagem() {
         />
       </span>
       <span
-        className="rotulo text-white [writing-mode:vertical-rl]"
+        className="rotulo-editorial text-white [writing-mode:vertical-rl]"
         style={SOMBRA_TEXTO}
       >
         role

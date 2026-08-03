@@ -90,7 +90,7 @@ function SecaoCor({
         >
           {etapas.map((etapa) => (
             <div key={etapa.titulo} data-revelar className="pt-7 md:pr-10">
-              <h3 className={`rotulo ${classes.texto}`}>{etapa.titulo}</h3>
+              <h3 className={`rotulo-editorial ${classes.texto}`}>{etapa.titulo}</h3>
               <p
                 className={`mt-4 text-base leading-relaxed ${classes.textoSuave}`}
               >

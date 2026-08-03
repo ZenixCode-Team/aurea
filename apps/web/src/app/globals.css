@@ -214,13 +214,47 @@ body {
 }
 
 /* Rótulo de seção — assinatura que funde as duas refs:
-   prefixo `//` (titanintake) + numeração entre parênteses (oevra). */
+   prefixo `//` (titanintake) + numeração entre parênteses (oevra).
+
+   DE DENTRO PRA DENTRO. No sistema a mono é justificada: o rótulo fica ao lado de
+   número clínico e herda a mesma métrica, o que alinha coluna de tabela. Na landing
+   não existe número ao lado — ver `.rotulo-editorial`. */
 .rotulo {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-weight: 500;
+}
+
+/* Rótulo de seção DA LANDING.
+
+   A mono saiu daqui. Em caixa alta com 0.18em de entreletra, a IBM Plex Mono expõe o
+   que ela foi desenhada para fazer: toda letra ocupa a mesma largura. O `I` de "FUNCIONA"
+   recebe o mesmo espaço do `M`, e o rótulo lê como saída de terminal — mecânico, e datado
+   de um jeito que briga com o serif editorial do display ao lado.
+
+   A Familjen Grotesk é proporcional e humanista: o `I` ocupa o que precisa, o ritmo fica
+   par. Entreletra reduzida de 0.18em para 0.13em porque sans proporcional em caixa alta
+   já separa sozinha — 0.18em nela vira palavra desmontada. Peso 600 em vez de 500 devolve
+   a presença que o corpo menor tira.
+
+   `.rotulo` continua existindo e continua mono: o sistema é outro contexto e outra
+   decisão (ADR-004). Trocar os dois no mesmo commit seria confundir landing com produto. */
+.rotulo-editorial {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-weight: 600;
+  /* A Familjen tem `a` de gota e `g` de orelha que só aparecem em caixa baixa; em caixa
+     alta o que importa é o par kerning ficar estável. */
+  font-feature-settings: "kern" 1;
+  /* O rótulo também carrega numeral — `01`..`04` na coluna de contraste e nos passos.
+     Era exatamente por isso que a mono servia: dígito de largura fixa empilha alinhado.
+     `tabular-nums` devolve essa propriedade dentro da proporcional, então a coluna de
+     números continua reta sem precisar da textura de terminal. */
+  font-variant-numeric: tabular-nums;
 }
 
 /* Grain: textura fina por cima do WebGL e das fotos, para craft.

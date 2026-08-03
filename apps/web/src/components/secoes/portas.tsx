@@ -56,7 +56,7 @@ export function Portas() {
             className="group relative flex flex-col justify-between rounded-2xl border border-tinta/12 bg-creme p-9 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:border-tinta/25 md:p-10"
           >
             <div>
-              <span className="rotulo text-tinta-suave">{porta.entrada}</span>
+              <span className="rotulo-editorial text-tinta-suave">{porta.entrada}</span>
               <h3 className="display mt-5 text-4xl text-tinta md:text-[2.75rem]">
                 {porta.perfil}
               </h3>
@@ -65,7 +65,7 @@ export function Portas() {
               </p>
             </div>
 
-            <span className="rotulo mt-10 inline-flex items-center gap-2 text-tinta">
+            <span className="rotulo-editorial mt-10 inline-flex items-center gap-2 text-tinta">
               Entrar
               <span
                 aria-hidden="true"

@@ -27,7 +27,7 @@ const TONS_ROTULO = {
 
 export function Rotulo({ numero, children, tom = "escuro" }: PropsRotulo) {
   return (
-    <p className={`rotulo ${TONS_ROTULO[tom]}`}>
+    <p className={`rotulo-editorial ${TONS_ROTULO[tom]}`}>
       <span aria-hidden="true">{"// "}</span>({numero}) {children}
     </p>
   );

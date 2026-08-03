@@ -38,7 +38,7 @@ export function Rodape() {
             </p>
           </div>
 
-          <p className="rotulo text-creme/40">
+          <p className="rotulo-editorial text-creme/40">
             © {new Date().getFullYear()} AUREA
           </p>
         </div>
