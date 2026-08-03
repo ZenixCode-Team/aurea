@@ -125,7 +125,7 @@ export const AGENDA_SINTETICA: readonly ItemDaAgenda[] = [
     id: 'ag-1',
     tipo: 'QUIMIOTERAPIA',
     aconteceEm: em('2026-08-17', '09:00'),
-    local: 'Centro de infusão — sala 2',
+    local: 'Centro de infusão, sala 2',
     observacoes: 'Chegar com 30 minutos de antecedência.',
     profissional: { nome: 'Enfermeira de demonstração', funcao: 'ENFERMEIRO' },
   },
@@ -133,7 +133,7 @@ export const AGENDA_SINTETICA: readonly ItemDaAgenda[] = [
     id: 'ag-2',
     tipo: 'CONSULTA',
     aconteceEm: em('2026-08-10', '14:30'),
-    local: 'Ambulatório — consultório 4',
+    local: 'Ambulatório, consultório 4',
     observacoes: null,
     profissional: { nome: 'Médico de demonstração', funcao: 'MEDICO' },
   },
@@ -154,7 +154,7 @@ export const BIBLIOTECA_SINTETICA: readonly Verbete[] = [
     resumo: 'Febre durante a quimioterapia não é como uma febre comum.',
     categoria: 'QUANDO_PROCURAR_AJUDA',
     conteudo:
-      'Durante a quimioterapia, a defesa do corpo fica mais baixa. Por isso a febre pede atenção mesmo quando você se sente bem no resto.\n\nMeça a temperatura sempre que sentir calor, calafrio ou moleza. Se passar de 37,8 °C, entre em contato com a equipe no mesmo dia — não espere a febre subir mais para ver o que acontece.\n\nNão tome remédio para baixar a febre antes de falar com a equipe. O remédio esconde o sinal e atrasa a avaliação.',
+      'Durante a quimioterapia, a defesa do corpo fica mais baixa. Por isso a febre pede atenção mesmo quando você se sente bem no resto.\n\nMeça a temperatura sempre que sentir calor, calafrio ou moleza. Se passar de 37,8 °C, entre em contato com a equipe no mesmo dia; não espere a febre subir mais para ver o que acontece.\n\nNão tome remédio para baixar a febre antes de falar com a equipe. O remédio esconde o sinal e atrasa a avaliação.',
     atualizadoEm: em('2026-06-02'),
   },
   {
@@ -181,7 +181,7 @@ export const BIBLIOTECA_SINTETICA: readonly Verbete[] = [
     resumo: 'A pergunta diária serve para achar o sinal cedo, não para vigiar você.',
     categoria: 'TRATAMENTO',
     conteudo:
-      'O check-in leva cerca de dois minutos e existe por um motivo simples: efeito colateral achado no começo é muito mais fácil de resolver.\n\nResponder que está tudo bem é tão útil quanto relatar um sintoma — é assim que a equipe sabe que o dia foi tranquilo.\n\nSe você não conseguir responder um dia, tudo bem. A equipe vê que faltou resposta e entra em contato.',
+      'O check-in leva cerca de dois minutos e existe por um motivo simples: efeito colateral achado no começo é muito mais fácil de resolver.\n\nResponder que está tudo bem é tão útil quanto relatar um sintoma; é assim que a equipe sabe que o dia foi tranquilo.\n\nSe você não conseguir responder um dia, tudo bem. A equipe vê que faltou resposta e entra em contato.',
     atualizadoEm: em('2026-06-02'),
   },
 ];
@@ -431,7 +431,7 @@ export const HISTORICOS_SINTETICOS: Record<string, HistoricoDoPaciente> = {
         diaDoCiclo: 9,
         classificacao: null,
         naoClassificadaPorque:
-          'Questionário começado e não terminado. Silêncio não é verde — as duas causas mais prováveis são opostas.',
+          'Questionário começado e não terminado. Silêncio não é verde; as duas causas mais prováveis são opostas.',
         versaoDoConjunto: 'rascunho-0',
         validadoClinicamente: false,
         respostas: [

@@ -229,7 +229,7 @@ function PainelDeDetalheDaSolicitacao({
   aoAtender(): void;
 }) {
   const linhas = [
-    { rotulo: 'Telefone', valor: item.paciente.telefone ? formatarTelefone(item.paciente.telefone) : '—', mono: true },
+    { rotulo: 'Telefone', valor: item.paciente.telefone ? formatarTelefone(item.paciente.telefone) : 'não informado', mono: true },
     { rotulo: 'Motivo', valor: item.motivo ?? 'Sem motivo informado' },
     { rotulo: 'Solicitado em', valor: formatarDataEHora(item.criadaEm), mono: true },
     ...(item.atendidaEm

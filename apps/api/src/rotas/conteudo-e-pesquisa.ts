@@ -597,7 +597,7 @@ export async function rotasDeConteudoEPesquisa(app: FastifyInstance) {
       conjuntoId: alvo.id,
       rascunhoCriado: alvo.rascunhoCriado,
       aviso: alvo.rascunhoCriado
-        ? 'Um conjunto de orientações rascunho foi criado (ou clonado do publicado) para receber esta orientação. Esta API ainda não tem endpoint de publicação para ele — pendência declarada no código.'
+        ? 'Um conjunto de orientações rascunho foi criado (ou clonado do publicado) para receber esta orientação. Esta API ainda não tem endpoint de publicação para ele, pendência declarada no código.'
         : null,
     });
   });
@@ -684,7 +684,7 @@ export async function rotasDeConteudoEPesquisa(app: FastifyInstance) {
       orientacao: atualizada,
       rascunhoCriado,
       aviso: rascunhoCriado
-        ? 'A orientação original pertencia a um conjunto publicado. A edição foi aplicada numa cópia rascunho; o publicado não foi tocado. Esta API ainda não tem endpoint de publicação para o rascunho — pendência declarada no código.'
+        ? 'A orientação original pertencia a um conjunto publicado. A edição foi aplicada numa cópia rascunho; o publicado não foi tocado. Esta API ainda não tem endpoint de publicação para o rascunho, pendência declarada no código.'
         : null,
     };
   });

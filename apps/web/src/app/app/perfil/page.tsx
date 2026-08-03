@@ -63,7 +63,7 @@ export default function PaginaDePerfil() {
           )}
           {ciclo && (
             <p className="text-sm text-[var(--color-texto-suave)]">
-              Ciclo <Medida>{ciclo.numero}</Medida> — dia <Medida>{ciclo.diaDoCiclo}</Medida>
+              Ciclo <Medida>{ciclo.numero}</Medida>, dia <Medida>{ciclo.diaDoCiclo}</Medida>
             </p>
           )}
           {ciclo?.previsaoDaProximaSessao && (
@@ -79,7 +79,7 @@ export default function PaginaDePerfil() {
           <div className="flex flex-col gap-1">
             <p className="text-base text-[var(--color-texto)]">{medicoAssistente.nome}</p>
             <p className="text-sm text-[var(--color-texto-suave)]">
-              {ROTULO_DA_FUNCAO[medicoAssistente.funcao]} — {medicoAssistente.registroDoConselho}
+              {ROTULO_DA_FUNCAO[medicoAssistente.funcao]}, {medicoAssistente.registroDoConselho}
             </p>
           </div>
         </Bloco>
@@ -95,7 +95,7 @@ export default function PaginaDePerfil() {
                 <Rotulo>Seus contatos</Rotulo>
                 {contatos.doPaciente.map((contato) => (
                   <p key={contato.id} className="text-sm text-[var(--color-texto)]">
-                    {contato.nome} — <Medida>{formatarTelefone(contato.telefone)}</Medida>
+                    {contato.nome}, <Medida>{formatarTelefone(contato.telefone)}</Medida>
                   </p>
                 ))}
               </div>
@@ -106,7 +106,7 @@ export default function PaginaDePerfil() {
                 {contatos.deEmergencia.map((contato) => (
                   <p key={contato.id} className="text-sm text-[var(--color-texto)]">
                     {contato.nome}
-                    {contato.relacao ? ` (${contato.relacao})` : ''} —{' '}
+                    {contato.relacao ? ` (${contato.relacao})` : ''},{' '}
                     <Medida>{formatarTelefone(contato.telefone)}</Medida>
                   </p>
                 ))}
@@ -134,7 +134,7 @@ export default function PaginaDePerfil() {
             {alergias.map((alergia) => (
               <li key={alergia.id} className="text-sm text-[var(--color-texto)]">
                 {alergia.substancia}
-                {alergia.reacao ? ` — ${alergia.reacao}` : ''}
+                {alergia.reacao ? `, ${alergia.reacao}` : ''}
               </li>
             ))}
           </ul>

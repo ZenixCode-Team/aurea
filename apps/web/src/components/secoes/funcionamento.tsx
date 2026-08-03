@@ -14,7 +14,7 @@ const PASSOS = [
     numero: "01",
     titulo: "Você conta",
     corpo:
-      "Um sintoma por vez. A primeira pergunta é só sim ou não — se você não sentiu aquilo, passa direto. Só quem tem a queixa responde as perguntas de detalhe.",
+      "Um sintoma por vez. A primeira pergunta é só sim ou não; se você não sentiu aquilo, passa direto. Só quem tem a queixa responde as perguntas de detalhe.",
   },
   {
     numero: "02",
@@ -26,7 +26,7 @@ const PASSOS = [
     numero: "03",
     titulo: "Você recebe a orientação",
     corpo:
-      "O que fazer em casa para aquele sintoma. Se houver remédio, é sempre um que já está na sua receita — nada novo é indicado por aqui.",
+      "O que fazer em casa para aquele sintoma. Se houver remédio, é sempre um que já está na sua receita; nada novo é indicado por aqui.",
   },
   {
     numero: "04",
@@ -70,7 +70,7 @@ export function Funcionamento() {
       >
         Nos dias em que você não sente nada, o caminho inteiro leva poucos
         toques. O tempo maior fica reservado para os dias em que há algo a
-        contar — que são exatamente os dias em que vale a pena.
+        contar, que são exatamente os dias em que vale a pena.
       </p>
     </Secao>
   );

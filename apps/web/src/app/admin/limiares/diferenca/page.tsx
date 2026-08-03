@@ -38,7 +38,7 @@ import { ROTULO_DO_OPERADOR, ROTULO_DO_SINTOMA, formatarMedida } from '@/sistema
 import type { ConjuntoResumido, DiferencaEntreConjuntos, RegraResumida } from '@/sistema/tipos';
 
 function formatarValor(valor: number | null): string {
-  if (valor === null) return '—';
+  if (valor === null) return 'sem valor';
   const casas = Number.isInteger(valor) ? 0 : 1;
   return formatarMedida(valor, casas);
 }
@@ -184,7 +184,7 @@ function ConteudoDaDiferenca() {
           { rotulo: 'Comparar versões' },
         ]}
         titulo="Comparar versões"
-        descricao="Compara as regras de dois conjuntos de limiares — incluídas, removidas e alteradas."
+        descricao="Compara as regras de dois conjuntos de limiares: incluídas, removidas e alteradas."
       />
 
       {erroDosConjuntos && (
@@ -240,7 +240,7 @@ function ConteudoDaDiferenca() {
         {diferenca && totalDeDiferencas === 0 && (
           <EstadoVazio
             titulo="Nenhuma diferença entre as duas versões selecionadas"
-            descricao="As regras dos dois conjuntos são idênticas — mesmo sintoma, campo, operador, valor, classificação e justificativa."
+            descricao="As regras dos dois conjuntos são idênticas: mesmo sintoma, campo, operador, valor, classificação e justificativa."
           />
         )}
 
@@ -372,7 +372,7 @@ function SeletorDeConjunto({
         <option value="">Selecione…</option>
         {(conjuntos ?? []).map((conjunto) => (
           <option key={conjunto.id} value={conjunto.id}>
-            {`${conjunto.versao} — ${conjunto.estado === 'PUBLICADO' ? 'publicado' : conjunto.estado.toLowerCase()}`}
+            {`${conjunto.versao}, ${conjunto.estado === 'PUBLICADO' ? 'publicado' : conjunto.estado.toLowerCase()}`}
           </option>
         ))}
       </select>

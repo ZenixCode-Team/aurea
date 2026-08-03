@@ -169,7 +169,7 @@ export default function Bancada() {
       });
 
       if (r.status !== 200) {
-        setErro(`${r.corpo?.erro ?? 'erro'} — ${JSON.stringify(r.corpo?.detalhes ?? {})}`);
+        setErro(`${r.corpo?.erro ?? 'erro'}, ${JSON.stringify(r.corpo?.detalhes ?? {})}`);
         return;
       }
       setResultado(r.corpo);
@@ -182,7 +182,7 @@ export default function Bancada() {
     if (!token) return;
     const r = await chamar('/admin/limiares', { token });
     if (r.status !== 200) {
-      setErro(`limiares: ${r.status} — ${r.corpo?.erro ?? ''}`);
+      setErro(`limiares: ${r.status}, ${r.corpo?.erro ?? ''}`);
       setLimiares(null);
       return;
     }
@@ -225,7 +225,7 @@ export default function Bancada() {
     if (!token) return;
     const r = await chamar('/painel/pacientes-do-dia', { token });
     if (r.status !== 200) {
-      setErro(`painel: ${r.status} — ${r.corpo?.erro ?? ''}`);
+      setErro(`painel: ${r.status}, ${r.corpo?.erro ?? ''}`);
       setPainel(null);
       return;
     }
@@ -239,7 +239,7 @@ export default function Bancada() {
       className="mx-auto min-h-screen max-w-3xl bg-white p-6 text-[13px] leading-relaxed text-neutral-900"
     >
       <header className="mb-6 border-b border-neutral-300 pb-4">
-        <h1 className="text-base font-bold">AUREA — bancada de teste</h1>
+        <h1 className="text-base font-bold">AUREA: bancada de teste</h1>
         <p className="mt-1 text-neutral-600">
           Não é interface de produto. Existe para exercitar a API à mão e mostrar o que
           fica gravado no banco. Todo paciente aqui é inventado.
@@ -284,7 +284,7 @@ export default function Bancada() {
         <section className="mb-6">
           <h2 className="mb-2 font-bold">2 · check-in do dia</h2>
           <p className="mb-3 text-neutral-600">
-            As perguntas vêm do servidor. Responder &quot;não&quot; na porta fecha o ramo — é o
+            As perguntas vêm do servidor. Responder &quot;não&quot; na porta fecha o ramo; é o
             que torna o check-in diário viável.
           </p>
 
@@ -342,7 +342,7 @@ export default function Bancada() {
                         onChange={(evento) => definir(ramo.sintoma, campo.campo, evento.target.value || undefined)}
                         className="mt-1 border border-neutral-400 px-2 py-1"
                       >
-                        <option value="">—</option>
+                        <option value="">nenhum</option>
                         {campo.opcoes?.map((opcao) => (
                           <option key={opcao} value={opcao}>
                             {opcao}
@@ -386,7 +386,7 @@ export default function Bancada() {
             {resultado.enfermagemAvisada ? ' · enfermagem avisada' : ' · enfermagem não acionada'}
           </div>
 
-          <h3 className="mt-4 mb-1 font-bold">por que — a explicação gravada no banco</h3>
+          <h3 className="mt-4 mb-1 font-bold">por que: a explicação gravada no banco</h3>
           <pre className="overflow-x-auto border border-neutral-300 bg-neutral-50 p-3 text-[11px]">
             {JSON.stringify(resultado.explicacao, null, 2)}
           </pre>
@@ -402,7 +402,7 @@ export default function Bancada() {
               </div>
             ))
           ) : (
-            <p className="text-neutral-600">nenhuma — resultado verde não gera orientação</p>
+            <p className="text-neutral-600">nenhuma: resultado verde não gera orientação</p>
           )}
         </section>
       )}
@@ -428,7 +428,7 @@ export default function Bancada() {
 
       {token && (
         <section className="mb-6">
-          <h2 className="mb-2 font-bold">5 · admin — o algoritmo como dado</h2>
+          <h2 className="mb-2 font-bold">5 · admin: o algoritmo como dado</h2>
           <p className="mb-2 text-neutral-600">
             É aqui que a regra 1 do ADR-001 vira algo que você usa: os cortes de risco são
             linhas de tabela, não código. Entre como administrador.
@@ -471,7 +471,7 @@ export default function Bancada() {
           {conjuntoAberto && (
             <div className="mt-3 border border-neutral-400 p-3">
               <div className="mb-2 font-bold">
-                {String(conjuntoAberto.versao)} — as regras em português
+                {String(conjuntoAberto.versao)}: as regras em português
               </div>
               {(conjuntoAberto.regras as Array<Record<string, string>>).map((regra) => (
                 <div key={regra.id} className="mb-1 border-l-4 pl-2" style={{ borderColor: CORES[regra.classificacao] }}>
@@ -495,8 +495,8 @@ export default function Bancada() {
         <section className="mb-10">
           <h2 className="mb-2 font-bold">4 · painel da enfermagem</h2>
           <p className="mb-2 text-neutral-600">
-            Entre como enfermagem e clique. Como administrador, a mesma chamada devolve 403
-            — quem edita o algoritmo não está de plantão.
+            Entre como enfermagem e clique. Como administrador, a mesma chamada devolve 403;
+            quem edita o algoritmo não está de plantão.
           </p>
           <button onClick={abrirPainel} className="border border-neutral-400 px-3 py-2 hover:bg-neutral-100">
             abrir pacientes do dia

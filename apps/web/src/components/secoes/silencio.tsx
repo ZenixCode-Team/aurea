@@ -27,14 +27,14 @@ export function Silencio() {
 
         <div data-revelar className="flex flex-col gap-7 md:pt-4">
           <p className="text-xl leading-relaxed text-creme/85">
-            Um dia sem resposta pode ser um bom sinal — você estava bem e
+            Um dia sem resposta pode ser um bom sinal; você estava bem e
             esqueceu. Pode ser o contrário: você piorou tanto que não
             conseguiu pegar o celular.
           </p>
           <p className="text-lg leading-relaxed text-creme/70">
             São as duas explicações mais prováveis, e elas são opostas. Por
             isso a sua ausência não passa em branco: depois de um período sem
-            resposta, a enfermagem procura você. Não é cobrança — é a parte
+            resposta, a enfermagem procura você. Não é cobrança; é a parte
             do cuidado que ninguém consegue fazer só olhando o que chegou.
           </p>
           <p className="text-lg leading-relaxed text-creme/70">

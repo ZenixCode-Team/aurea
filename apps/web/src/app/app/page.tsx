@@ -187,7 +187,7 @@ export default function PaginaHoje() {
                       ) - perfil.ciclo.diaDoCiclo,
                       0,
                     )
-                  : '—'
+                  : 'sem data'
               }
               apoio={perfil.ciclo.previsaoDaProximaSessao ? 'dias' : 'sem previsão'}
             />
@@ -219,7 +219,7 @@ export default function PaginaHoje() {
             <p className="text-base text-[var(--color-texto-suave)]">
               {formatarDataPorExtenso(proximoCompromisso.aconteceEm)} às{' '}
               {formatarHora(proximoCompromisso.aconteceEm)}
-              {proximoCompromisso.local ? ` — ${proximoCompromisso.local}` : ''}
+              {proximoCompromisso.local ? `, ${proximoCompromisso.local}` : ''}
             </p>
           </>
         ) : (

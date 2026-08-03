@@ -241,7 +241,7 @@ export async function rotasDeAdmin(app: FastifyInstance) {
 
     if (!usuario.profissionalId) {
       throw semPermissao(
-        'Só profissional de saúde assina validação clínica — é responsabilidade técnica sobre os cortes.',
+        'Só profissional de saúde assina validação clínica; é responsabilidade técnica sobre os cortes.',
       );
     }
 

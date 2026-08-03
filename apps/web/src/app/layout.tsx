@@ -73,11 +73,11 @@ const serifDisplay = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "AUREA — monitoramento remoto de toxicidade em quimioterapia",
+  title: "AUREA: monitoramento remoto de toxicidade em quimioterapia",
   description:
     "AUREA acompanha o paciente em quimioterapia nos dias em casa. Pergunta todo dia, classifica o risco com regra fixa e avisa a enfermagem quando o sinal aparece.",
   openGraph: {
-    title: "AUREA — monitoramento remoto de toxicidade em quimioterapia",
+    title: "AUREA: monitoramento remoto de toxicidade em quimioterapia",
     description:
       "Pergunta todo dia. Classifica com regra fixa. Avisa a enfermagem.",
     locale: "pt_BR",

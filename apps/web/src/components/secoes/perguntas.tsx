@@ -17,7 +17,7 @@ const PERGUNTAS = [
   {
     pergunta: "Quanto tempo leva para responder?",
     resposta:
-      "Menos do que você imagina. A primeira pergunta de cada sintoma é só sim ou não. Se você não sentiu nada daquilo, responde não e já passa para a próxima — as perguntas de detalhe só aparecem para quem tem a queixa.",
+      "Menos do que você imagina. A primeira pergunta de cada sintoma é só sim ou não. Se você não sentiu nada daquilo, responde não e já passa para a próxima; as perguntas de detalhe só aparecem para quem tem a queixa.",
   },
   {
     pergunta: "E se eu não estiver sentindo nada?",
@@ -42,7 +42,7 @@ const PERGUNTAS = [
   {
     pergunta: "As perguntas são sempre as mesmas?",
     resposta:
-      "As perguntas iniciais sim. O que muda é o caminho: dependendo do que você marca, aparecem perguntas mais específicas sobre aquele sintoma — intensidade, quantas vezes, se houve febre junto.",
+      "As perguntas iniciais sim. O que muda é o caminho: dependendo do que você marca, aparecem perguntas mais específicas sobre aquele sintoma: intensidade, quantas vezes, se houve febre junto.",
   },
   {
     pergunta: "Se eu marcar vermelho, alguém me liga na hora?",

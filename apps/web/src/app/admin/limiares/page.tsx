@@ -40,7 +40,7 @@ const ESTILO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
 };
 
 const ROTULO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
-  PUBLICADO: 'Publicado — classificando agora',
+  PUBLICADO: 'Publicado, classificando agora',
   RASCUNHO: 'Rascunho',
   ARQUIVADO: 'Arquivado',
 };
@@ -130,7 +130,7 @@ export default function PaginaDeLimiares() {
             />
             <CartaoDeIndicador
               rotulo="Publicado"
-              valor={resumo.publicado ? resumo.publicado.versao : '—'}
+              valor={resumo.publicado ? resumo.publicado.versao : 'nenhum'}
               apoio={resumo.publicado ? 'classificando pacientes agora' : 'nenhum conjunto publicado'}
               tom="neutro"
             />
@@ -187,7 +187,7 @@ export default function PaginaDeLimiares() {
                     <Celula mono>{conjunto.quantidadeDeRegras}</Celula>
                     <Celula mono>{formatarDataEHora(conjunto.criadoEm)}</Celula>
                     <Celula mono>
-                      {conjunto.publicadoEm ? formatarDataEHora(conjunto.publicadoEm) : '—'}
+                      {conjunto.publicadoEm ? formatarDataEHora(conjunto.publicadoEm) : 'não publicado'}
                     </Celula>
                   </LinhaDaTabela>
                 ))}
@@ -197,7 +197,7 @@ export default function PaginaDeLimiares() {
 
           <div className="mt-4">
             <Aviso tom="informacao">
-              Apenas um conjunto fica no estado publicado por vez. É ele — e só ele — que
+              Apenas um conjunto fica no estado publicado por vez. É ele, e só ele, que
               classifica o check-in dos pacientes hoje.
             </Aviso>
           </div>

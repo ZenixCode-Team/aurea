@@ -114,7 +114,7 @@ export function descreverRegra(regra: RegraDeLimiar): string {
 }
 
 function formatar(valor: number | null | undefined): string {
-  if (valor === null || valor === undefined) return '—';
+  if (valor === null || valor === undefined) return 'sem valor';
   return String(valor).replace('.', ',');
 }
 
@@ -159,7 +159,7 @@ export function compararConjuntos(
   for (const chave of chavesDePolitica) {
     if (de.politica[chave] !== para.politica[chave]) {
       politica.push({
-        sintoma: '—',
+        sintoma: 'não se aplica',
         campo: chave,
         antes: de.politica[chave],
         depois: para.politica[chave],

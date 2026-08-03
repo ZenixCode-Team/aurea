@@ -75,7 +75,7 @@ export default function PaginaDeAlergias() {
             {alergias.map((alergia) => (
               <li key={alergia.id} className="text-sm text-[var(--color-texto)]">
                 {alergia.substancia}
-                {alergia.reacao ? ` — ${alergia.reacao}` : ''}
+                {alergia.reacao ? `, ${alergia.reacao}` : ''}
               </li>
             ))}
           </ul>

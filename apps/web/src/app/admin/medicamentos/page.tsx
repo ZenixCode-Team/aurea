@@ -140,7 +140,7 @@ export default function PaginaDeMedicamentos() {
                 {medicamentos.map((medicamento) => (
                   <LinhaDaTabela key={medicamento.id}>
                     <Celula>{medicamento.nome}</Celula>
-                    <Celula>{medicamento.principioAtivo ?? '—'}</Celula>
+                    <Celula>{medicamento.principioAtivo ?? 'não informado'}</Celula>
                   </LinhaDaTabela>
                 ))}
               </tbody>

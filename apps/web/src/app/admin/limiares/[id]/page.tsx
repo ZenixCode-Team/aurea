@@ -58,7 +58,7 @@ const COR_DA_CLASSIFICACAO: Record<Classificacao, string> = {
 };
 
 function formatarValorDaRegra(valor: number | null): string {
-  if (valor === null) return '—';
+  if (valor === null) return 'sem valor';
   const casas = Number.isInteger(valor) ? 0 : 1;
   return formatarMedida(valor, casas);
 }
@@ -228,7 +228,7 @@ export default function PaginaDeDetalheDoConjunto() {
             <div className="mb-6">
               <Aviso tom="atencao" titulo="Conjunto publicado">
                 Este conjunto passou a classificar pacientes reais a partir de agora. Ele não será
-                editado — qualquer ajuste futuro nasce em um conjunto novo.
+                editado; qualquer ajuste futuro nasce em um conjunto novo.
               </Aviso>
             </div>
           )}
@@ -256,7 +256,7 @@ export default function PaginaDeDetalheDoConjunto() {
             <CartaoDeIndicador
               rotulo="Publicado em"
               valor={
-                estado.conjunto.publicadoEm ? formatarDataEHora(estado.conjunto.publicadoEm) : '—'
+                estado.conjunto.publicadoEm ? formatarDataEHora(estado.conjunto.publicadoEm) : 'não publicado'
               }
               tom="neutro"
             />
@@ -266,7 +266,7 @@ export default function PaginaDeDetalheDoConjunto() {
             <Aviso tom="informacao" titulo="Política de classificação não exposta aqui">
               A política de combinação de sintomas, efeito do antitérmico e tratamento de
               abandono é definida na criação do conjunto, mas a listagem de conjuntos
-              (`buscarConjuntos`) ainda não devolve esse campo — pendente da Onda F.
+              (`buscarConjuntos`) ainda não devolve esse campo, pendente da Onda F.
             </Aviso>
           </div>
 
@@ -366,7 +366,7 @@ export default function PaginaDeDetalheDoConjunto() {
           >
             <p className="text-sm text-[var(--color-texto)]">
               A partir da publicação, este conjunto passa a classificar pacientes reais no
-              check-in diário — substitui o conjunto publicado hoje.
+              check-in diário; substitui o conjunto publicado hoje.
             </p>
             <p className="mt-3 text-sm text-[var(--color-texto)]">
               Conjunto publicado nunca é editado depois. Se um corte precisar mudar mais tarde,
@@ -392,7 +392,7 @@ export default function PaginaDeDetalheDoConjunto() {
             <p className="text-sm text-[var(--color-texto)]">
               Esta marca declara que uma pessoa com responsabilidade clínica revisou e assinou
               os cortes deste conjunto. Enquanto ausente, todo resultado gerado por ele carrega
-              o selo de não validado — inclusive se já estiver publicado.
+              o selo de não validado, inclusive se já estiver publicado.
             </p>
           </Modal>
         </>

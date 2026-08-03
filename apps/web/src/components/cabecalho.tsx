@@ -52,7 +52,7 @@ export function Cabecalho() {
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/40 bg-white/45 p-1.5 pl-5 shadow-[var(--sombra-elevada)] backdrop-blur-2xl backdrop-saturate-150">
           <Link
             href="/"
-            aria-label="AUREA — início"
+            aria-label="AUREA, início"
             className="display mr-2 text-2xl leading-none text-tinta"
           >
             aurea

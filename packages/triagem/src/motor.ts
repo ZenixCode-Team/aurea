@@ -127,7 +127,7 @@ export function classificar(
   if (porSintoma.length === 0) {
     return {
       situacao: 'NAO_CLASSIFICADA',
-      motivo: 'Nenhum sintoma foi respondido por completo — não há o que avaliar.',
+      motivo: 'Nenhum sintoma foi respondido por completo; não há o que avaliar.',
       conjuntoDeLimiaresId: conjunto.id,
       versaoDoConjunto: conjunto.versao,
       sintomasRespondidos,
@@ -270,7 +270,7 @@ function aplicarPolitica(
           politica: 'efeitoDoAntitermico=ELEVAR_UM_NIVEL',
           de: febre.classificacao,
           para: elevada,
-          motivo: 'Antitérmico usado — a temperatura medida subestima a febre real.',
+          motivo: 'Antitérmico usado; a temperatura medida subestima a febre real.',
         });
         porSintoma[porSintoma.indexOf(febre)] = { ...febre, classificacao: elevada };
       }

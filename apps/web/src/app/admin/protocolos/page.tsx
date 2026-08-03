@@ -139,7 +139,7 @@ export default function PaginaDeProtocolos() {
                 {protocolos.map((protocolo) => (
                   <LinhaDaTabela key={protocolo.id}>
                     <Celula>{protocolo.nome}</Celula>
-                    <Celula>{protocolo.descricao ?? '—'}</Celula>
+                    <Celula>{protocolo.descricao ?? 'não informado'}</Celula>
                     <Celula>{protocolo.ativo ? 'Sim' : 'Não'}</Celula>
                   </LinhaDaTabela>
                 ))}

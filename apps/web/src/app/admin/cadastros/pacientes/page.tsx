@@ -157,7 +157,7 @@ function validar(formulario: FormularioDePaciente): ErrosDoFormulario {
   if (!formulario.cpf.trim()) {
     erros.cpf = 'Informe o CPF.';
   } else if (!cpfEhValido(formulario.cpf)) {
-    erros.cpf = 'CPF inválido — confira os dígitos.';
+    erros.cpf = 'CPF inválido; confira os dígitos.';
   }
 
   if (!formulario.dataNascimento) {
@@ -325,7 +325,7 @@ export default function PaginaDePacientes() {
       <div className="mb-6">
         <Aviso tom="atencao" titulo="Dado sintético até a aprovação do Comitê de Ética">
           Todo paciente listado aqui é fictício. Nome, CPF e diagnóstico de pessoa real não entram
-          no sistema antes da aprovação do Comitê de Ética — vale para esta tela, para print e
+          no sistema antes da aprovação do Comitê de Ética; vale para esta tela, para print e
           para apresentação.
         </Aviso>
       </div>
@@ -335,7 +335,7 @@ export default function PaginaDePacientes() {
           <Aviso tom="informacao" titulo="Paciente adicionado apenas à lista local">
             <div className="flex items-center justify-between gap-4">
               <span>
-                Nada foi gravado no servidor — a API não tem endpoint de escrita para paciente
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para paciente
                 ainda. Isso é a Onda F.
               </span>
               <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
@@ -387,7 +387,7 @@ export default function PaginaDePacientes() {
                     <Celula mono>{formatarCpf(paciente.cpf)}</Celula>
                     <Celula mono>{calcularIdade(paciente.dataNascimento)}</Celula>
                     <Celula>{paciente.diagnostico}</Celula>
-                    <Celula>{paciente.protocolo ?? '—'}</Celula>
+                    <Celula>{paciente.protocolo ?? 'não informado'}</Celula>
                   </LinhaDaTabela>
                 ))}
               </tbody>
@@ -399,7 +399,7 @@ export default function PaginaDePacientes() {
       <Modal
         aberto={modalAberto}
         titulo="Novo paciente"
-        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético — não é gravado no servidor."
+        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético, não é gravado no servidor."
         aoFechar={fecharModal}
         rodape={
           <>

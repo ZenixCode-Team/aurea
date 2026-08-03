@@ -71,7 +71,7 @@ export default function RecuperarSenhaPage() {
             <div className="mt-5">
               <Aviso tom="informacao" titulo="A recuperação automática ainda não está disponível">
                 Nesta fase do sistema, a troca de senha esquecida é feita direto com a
-                equipe do serviço onde você faz o tratamento — por telefone ou
+                equipe do serviço onde você faz o tratamento, por telefone ou
                 presencialmente. Leve o CPF ou e-mail informado acima para agilizar o
                 atendimento.
               </Aviso>
@@ -115,7 +115,7 @@ export default function RecuperarSenhaPage() {
               um e-mail que não chega.
             </p>
             <p className="mt-5 text-[0.9375rem] leading-relaxed text-[var(--color-creme)]/80">
-              Nesta fase, recuperar o acesso passa pela equipe do seu serviço — de
+              Nesta fase, recuperar o acesso passa pela equipe do seu serviço, de
               propósito, e não por falta de atenção com o seu tempo.
             </p>
           </div>

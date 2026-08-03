@@ -140,7 +140,7 @@ export default function PaginaDeAcessos() {
       <CabecalhoDePainel
         trilha={[{ rotulo: 'Administração' }, { rotulo: 'Registro de acessos' }]}
         titulo="Registro de acessos"
-        descricao="Toda leitura de prontuário, exportação e alteração do algoritmo fica registrada — exigência de LGPD, não telemetria de produto."
+        descricao="Toda leitura de prontuário, exportação e alteração do algoritmo fica registrada, exigência de LGPD, não telemetria de produto."
       />
 
       {estado.situacao === 'CARREGANDO' && <Carregando linhas={6} />}
@@ -159,7 +159,7 @@ export default function PaginaDeAcessos() {
             <CartaoDeIndicador rotulo="Tipos de ação" valor={acoesPresentes.length} tom="neutro" />
             <CartaoDeIndicador
               rotulo="Último registro"
-              valor={ultimoAcesso ? formatarDataEHora(ultimoAcesso.aconteceuEm) : '—'}
+              valor={ultimoAcesso ? formatarDataEHora(ultimoAcesso.aconteceuEm) : 'sem registro'}
               tom="neutro"
             />
           </LinhaDeIndicadores>
@@ -227,8 +227,8 @@ export default function PaginaDeAcessos() {
                       <Celula mono>{formatarDataEHora(registro.aconteceuEm)}</Celula>
                       <Celula>{registro.usuario}</Celula>
                       <Celula>{ROTULO_DA_ACAO[registro.acao] ?? registro.acao}</Celula>
-                      <Celula>{registro.recurso ?? '—'}</Celula>
-                      <Celula mono>{registro.enderecoDeOrigem ?? '—'}</Celula>
+                      <Celula>{registro.recurso ?? 'não informado'}</Celula>
+                      <Celula mono>{registro.enderecoDeOrigem ?? 'não informado'}</Celula>
                     </LinhaDaTabela>
                   ))}
                 </tbody>

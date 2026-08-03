@@ -227,7 +227,7 @@ export default function PaginaDePrescricoes() {
           <Aviso tom="informacao" titulo="Prescrição adicionada apenas à lista local">
             <div className="flex items-center justify-between gap-4">
               <span>
-                Nada foi gravado no servidor — a API não tem endpoint de escrita para prescrição
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para prescrição
                 ainda. Isso é a Onda F.
               </span>
               <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
@@ -296,7 +296,7 @@ export default function PaginaDePrescricoes() {
       <Modal
         aberto={modalAberto}
         titulo="Nova prescrição"
-        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético — não é gravado no servidor."
+        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético, não é gravado no servidor."
         aoFechar={fecharModal}
         rodape={
           <>
@@ -318,7 +318,7 @@ export default function PaginaDePrescricoes() {
         >
           <Campo
             rotulo="Paciente *"
-            ajuda="Digite o nome como está no cadastro de pacientes — os cadastros ainda não são ligados entre si."
+            ajuda="Digite o nome como está no cadastro de pacientes; os cadastros ainda não são ligados entre si."
             value={formulario.pacienteNome}
             onChange={(evento) =>
               setFormulario((atual) => ({ ...atual, pacienteNome: evento.target.value }))

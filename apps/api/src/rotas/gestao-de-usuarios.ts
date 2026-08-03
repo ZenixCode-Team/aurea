@@ -41,7 +41,7 @@ function recusarCombinacaoProibida(permissoes: readonly Permissao[]): void {
       422,
       'EDITAR_ALGORITMO e ATENDER_PLANTAO não podem coexistir no mesmo usuário. Quem edita o ' +
         'algoritmo muda o risco de todos os pacientes de uma vez; quem está de plantão responde ' +
-        'por um paciente. A separação é deliberada — Regra 6 do ADR-001.',
+        'por um paciente. A separação é deliberada, Regra 6 do ADR-001.',
     );
   }
 }

@@ -114,8 +114,8 @@ export async function avisarEnfermagem(
 
   const assunto =
     resultado === 'VERMELHO'
-      ? `Alerta vermelho — ${pacienteNome}`
-      : `Atenção — ${pacienteNome}`;
+      ? `Alerta vermelho: ${pacienteNome}`
+      : `Atenção: ${pacienteNome}`;
 
   await prisma.notificacao.createMany({
     data: dePlantao.map((concessao) => ({

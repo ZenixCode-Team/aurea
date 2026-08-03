@@ -62,7 +62,7 @@ async function avisarPlantaoSobreSolicitacao(
     data: dePlantao.map((concessao) => ({
       destinatarioId: concessao.usuarioId,
       canal: 'NO_APP' as const,
-      assunto: `Pedido de contato — ${nomeDoPaciente}`,
+      assunto: `Pedido de contato: ${nomeDoPaciente}`,
       corpo: 'O paciente pediu para falar com a enfermagem. Abra a fila de pedidos.',
       referenciaTipo: 'SolicitacaoDeContato',
       referenciaId: solicitacaoId,

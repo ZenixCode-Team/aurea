@@ -159,7 +159,7 @@ export default function PaginaDeNovoConjunto() {
       return;
     }
     if (!rascunho.justificativa.trim()) {
-      setErroDoRascunho('Justificativa é obrigatória — regra sem justificativa não entra.');
+      setErroDoRascunho('Justificativa é obrigatória; regra sem justificativa não entra.');
       return;
     }
     const valorNumerico = rascunho.valor.trim() === '' ? null : Number(rascunho.valor);
@@ -226,7 +226,7 @@ export default function PaginaDeNovoConjunto() {
       {salvo && (
         <div className="mb-6">
           <Aviso tom="informacao" titulo="Conjunto criado como rascunho">
-            {`O conjunto "${versao}" foi criado como rascunho local, com ${regras.length} regra(s). Ele não classifica ninguém até ser publicado — e publicação depende da origem de escrita da Onda F.`}
+            {`O conjunto "${versao}" foi criado como rascunho local, com ${regras.length} regra(s). Ele não classifica ninguém até ser publicado, e publicação depende da origem de escrita da Onda F.`}
           </Aviso>
         </div>
       )}
@@ -269,7 +269,7 @@ export default function PaginaDeNovoConjunto() {
 
         <Bloco
           titulo="Política de classificação"
-          descricao="São decisões clínicas, não preferências de interface — cada opção muda o resultado que o paciente recebe."
+          descricao="São decisões clínicas, não preferências de interface; cada opção muda o resultado que o paciente recebe."
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
@@ -367,7 +367,7 @@ export default function PaginaDeNovoConjunto() {
             <textarea
               id="justificativa-da-regra"
               rows={3}
-              placeholder="Por que este corte existe — vai para a explicação do resultado e para a defesa do critério."
+              placeholder="Por que este corte existe; vai para a explicação do resultado e para a defesa do critério."
               value={rascunho.justificativa}
               onChange={(evento) =>
                 setRascunho((atual) => ({ ...atual, justificativa: evento.target.value }))
@@ -411,7 +411,7 @@ export default function PaginaDeNovoConjunto() {
                     <Celula>{ROTULO_DO_SINTOMA[regra.sintoma] ?? regra.sintoma}</Celula>
                     <Celula mono>{regra.campo}</Celula>
                     <Celula>{ROTULO_DO_OPERADOR[regra.operador] ?? regra.operador}</Celula>
-                    <Celula mono>{regra.valor ?? '—'}</Celula>
+                    <Celula mono>{regra.valor ?? 'sem valor'}</Celula>
                     <Celula>
                       <SeloDeRisco situacao={regra.classificacao} />
                     </Celula>

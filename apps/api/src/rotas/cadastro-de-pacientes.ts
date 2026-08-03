@@ -420,7 +420,7 @@ export async function rotasDeCadastroDePacientes(app: FastifyInstance) {
     if (!paciente) throw naoEncontrado('Paciente não encontrado.');
 
     const { substancia, reacao } = analise.data;
-    const descricao = reacao ? `${substancia} — reação: ${reacao}` : substancia;
+    const descricao = reacao ? `${substancia}, reação: ${reacao}` : substancia;
 
     const alergia = await prisma.alergiaDoPaciente.create({
       data: { pacienteId: id, descricao, origem: 'EQUIPE' },

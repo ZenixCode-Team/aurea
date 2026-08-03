@@ -150,7 +150,7 @@ export default function EntrarPage() {
             <div className="mt-8 rounded-[var(--radius-amplo)] border border-dashed border-[var(--color-borda-forte)] px-4 py-4">
               <Rotulo>Atalho de demonstração</Rotulo>
               <p className="mt-2 text-xs leading-relaxed text-[var(--color-texto-suave)]">
-                Os dados deste ambiente são sintéticos — nenhum pertence a paciente real.
+                Os dados deste ambiente são sintéticos; nenhum pertence a paciente real.
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {(
@@ -221,7 +221,7 @@ export default function EntrarPage() {
             </p>
             <p className="mt-5 text-[0.9375rem] leading-relaxed text-[var(--color-creme)]/80">
               O efeito colateral achado no começo é muito mais fácil de resolver. É para
-              isso que o sistema pergunta todos os dias — e é por isso que a equipe vê
+              isso que o sistema pergunta todos os dias, e é por isso que a equipe vê
               antes de a pessoa precisar ligar.
             </p>
           </div>

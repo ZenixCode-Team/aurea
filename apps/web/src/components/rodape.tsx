@@ -34,7 +34,7 @@ export function Rodape() {
             <p className="mt-4 max-w-[52ch] text-sm leading-relaxed text-creme/55">
               Monitoramento remoto de toxicidade em tratamento antineoplásico.
               Produto tecnológico desenvolvido no âmbito do mestrado
-              profissional do PPGITS — Universidade Federal de Sergipe.
+              profissional do PPGITS, Universidade Federal de Sergipe.
             </p>
           </div>
 

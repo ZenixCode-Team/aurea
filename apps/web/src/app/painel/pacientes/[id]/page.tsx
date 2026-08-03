@@ -75,7 +75,7 @@ function formatarValorClinico(
   valor: number | string | boolean | null,
   unidade?: string | null,
 ): string {
-  if (valor === null) return '—';
+  if (valor === null) return 'não informado';
   if (typeof valor === 'boolean') return valor ? 'Sim' : 'Não';
   if (typeof valor === 'number') {
     const casas = Number.isInteger(valor) ? 0 : 1;
@@ -256,7 +256,7 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
         />
         <CartaoDeIndicador
           rotulo="Dia do ciclo"
-          valor={historico.paciente.diaDoCiclo ?? '—'}
+          valor={historico.paciente.diaDoCiclo ?? 'não informado'}
           apoio={
             historico.paciente.numeroDoCiclo != null
               ? `ciclo ${historico.paciente.numeroDoCiclo}`

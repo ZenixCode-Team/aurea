@@ -47,7 +47,7 @@ function textoDoEstado(cartao: CartaoDoPainel): string {
       : `${cartao.diasSemResponder} dias sem responder`;
   }
   if (cartao.respondeuHoje) return 'Respondeu hoje';
-  return '—';
+  return 'sem registro';
 }
 
 export default function PaginaDePacientesDoDia() {
@@ -270,7 +270,7 @@ export default function PaginaDePacientesDoDia() {
                             </span>
                           </span>
                           <span className="shrink-0 font-mono text-xs tabular-nums text-[var(--color-texto-fraco)]">
-                            {cartao.diaDoCiclo != null ? `D${cartao.diaDoCiclo}` : '—'}
+                            {cartao.diaDoCiclo != null ? `D${cartao.diaDoCiclo}` : 'sem dia'}
                           </span>
                           <SeloDeRisco situacao={cartao.situacao} className="shrink-0" />
                         </button>
@@ -403,7 +403,7 @@ function PainelDeDetalhe({ cartao }: { cartao: CartaoDoPainel }) {
         {cartao.situacao === 'NAO_CLASSIFICADA' && (
           <p className="text-xs leading-relaxed text-[var(--color-texto-fraco)]">
             Questionário começado e não terminado não recebe classificação. As duas causas
-            mais prováveis são opostas — trate como pendência.
+            mais prováveis são opostas; trate como pendência.
           </p>
         )}
       </div>

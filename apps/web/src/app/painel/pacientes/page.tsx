@@ -186,7 +186,7 @@ export default function PaginaDeTodosOsPacientes() {
                           {paciente.responsavel.telefone}
                         </a>
                       ) : (
-                        '—'
+                        'não informado'
                       )}
                     </Celula>
 

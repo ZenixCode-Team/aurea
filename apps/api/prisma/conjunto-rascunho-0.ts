@@ -33,7 +33,7 @@ import type { Prisma } from '@prisma/client';
 
 export const VERSAO_DO_CONJUNTO_RASCUNHO = 'rascunho-0';
 
-const PROVISORIO = 'VALOR DE DEMONSTRAÇÃO — aguarda definição do protocolo do serviço.';
+const PROVISORIO = 'VALOR DE DEMONSTRAÇÃO, aguarda definição do protocolo do serviço.';
 
 type Regra = Omit<Prisma.RegraDeLimiarCreateManyInput, 'conjuntoId'>;
 
@@ -145,7 +145,7 @@ export const REGRAS_DO_RASCUNHO: Regra[] = [
     classificacao: 'AMARELO',
     justificativa:
       'Dor de 4 a 7. A escala 0–10 serve melhor para acompanhar a variação do mesmo paciente ao longo do ciclo do que ' +
-      'como gatilho absoluto — usá-la como corte é o ponto mais frágil deste conjunto. ' + PROVISORIO,
+      'como gatilho absoluto; usá-la como corte é o ponto mais frágil deste conjunto. ' + PROVISORIO,
   },
   {
     ordem: 31,
@@ -164,7 +164,7 @@ export const REGRAS_DO_RASCUNHO: Regra[] = [
     valoresDeTexto: ['TORACICA', 'LOCAL_DO_CATETER'],
     classificacao: 'AMARELO',
     justificativa:
-      'Dor torácica e dor no local do cateter escalam pela localização, não pela nota — é o uso defensável da árvore ' +
+      'Dor torácica e dor no local do cateter escalam pela localização, não pela nota; é o uso defensável da árvore ' +
       'de dor. ' + PROVISORIO,
   },
 

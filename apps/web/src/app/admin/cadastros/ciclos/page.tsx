@@ -246,7 +246,7 @@ export default function PaginaDeCiclos() {
           <Aviso tom="informacao" titulo="Ciclo adicionado apenas à lista local">
             <div className="flex items-center justify-between gap-4">
               <span>
-                Nada foi gravado no servidor — a API não tem endpoint de escrita para ciclo ainda.
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para ciclo ainda.
                 Isso é a Onda F.
               </span>
               <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
@@ -318,7 +318,7 @@ export default function PaginaDeCiclos() {
       <Modal
         aberto={modalAberto}
         titulo="Novo ciclo"
-        descricao="Todos os campos são obrigatórios. Dado sintético — não é gravado no servidor."
+        descricao="Todos os campos são obrigatórios. Dado sintético, não é gravado no servidor."
         aoFechar={fecharModal}
         rodape={
           <>
@@ -359,7 +359,7 @@ export default function PaginaDeCiclos() {
               <option value="">Selecione…</option>
               {tratamentosDisponiveis.map((tratamento) => (
                 <option key={tratamento.id} value={tratamento.id}>
-                  {tratamento.pacienteNome} — {tratamento.protocolo.nome}
+                  {tratamento.pacienteNome}, {tratamento.protocolo.nome}
                 </option>
               ))}
             </select>
@@ -393,7 +393,7 @@ export default function PaginaDeCiclos() {
 
           <Campo
             rotulo="Previsão da próxima sessão"
-            ajuda="É previsão, não compromisso agendado — a data real depende de exame, de contagem de leucócitos e da agenda do serviço. Deixe em branco se ainda não houver previsão."
+            ajuda="É previsão, não compromisso agendado; a data real depende de exame, de contagem de leucócitos e da agenda do serviço. Deixe em branco se ainda não houver previsão."
             type="date"
             mono
             value={formulario.previsaoDaProxima}

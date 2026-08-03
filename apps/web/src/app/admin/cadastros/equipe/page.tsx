@@ -283,7 +283,7 @@ export default function PaginaDeEquipe() {
           <Aviso tom="informacao" titulo="Profissional adicionado apenas à lista local">
             <div className="flex items-center justify-between gap-4">
               <span>
-                Nada foi gravado no servidor — a API não tem endpoint de escrita para profissional
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para profissional
                 ainda. Isso é a Onda F.
               </span>
               <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
@@ -346,7 +346,7 @@ export default function PaginaDeEquipe() {
       <Modal
         aberto={modalAberto}
         titulo="Novo profissional"
-        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético — não é gravado no servidor."
+        descricao="Todos os campos marcados com * são obrigatórios. Dado sintético, não é gravado no servidor."
         aoFechar={fecharModal}
         rodape={
           <>
@@ -435,7 +435,7 @@ export default function PaginaDeEquipe() {
 
             {conflitoAtivo && (
               <Aviso tom="atencao" titulo="Conflito de permissões">
-                Quem edita o algoritmo não atende plantão — são responsabilidades separadas de
+                Quem edita o algoritmo não atende plantão; são responsabilidades separadas de
                 propósito, e a API recusa a chamada cruzada com 403. Desmarque uma das duas antes
                 de salvar.
               </Aviso>

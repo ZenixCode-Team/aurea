@@ -61,13 +61,13 @@ export default function PaginaDeCadastros() {
       <CabecalhoDePainel
         trilha={[{ rotulo: 'Administração' }, { rotulo: 'Cadastros' }]}
         titulo="Cadastros"
-        descricao="Pacientes, equipe, tratamentos, ciclos e prescrições — as cinco entidades administrativas do AUREA."
+        descricao="Pacientes, equipe, tratamentos, ciclos e prescrições, as cinco entidades administrativas do AUREA."
       />
 
       <div className="mb-6">
         <Aviso tom="atencao" titulo="Nenhuma destas telas grava no servidor">
           A API ainda não tem endpoint de escrita para paciente, profissional, tratamento, ciclo
-          ou prescrição — isso é escopo da Onda F. As cinco telas abaixo funcionam com estado
+          ou prescrição; isso é escopo da Onda F. As cinco telas abaixo funcionam com estado
           local: o que você cadastrar fica só nesta aba, some ao recarregar a página, e nunca
           chega ao banco. É melhor uma tela honesta sobre isso do que um formulário que finge
           salvar.

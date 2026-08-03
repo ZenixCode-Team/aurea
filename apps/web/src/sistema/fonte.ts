@@ -417,7 +417,7 @@ export async function buscarTodosOsPacientes(): Promise<readonly PacienteAcompan
         nome: cartao.nome,
         dataNascimento: null,
         sexo: 'NAO_INFORMADO' as const,
-        diagnostico: '—',
+        diagnostico: 'não informado',
         convenio: null,
         protocolo: cartao.protocolo,
         emTratamento: true,
@@ -592,7 +592,7 @@ export async function buscarHistoricoNoPainel(
       classificacao: vigente?.resultado ?? null,
       naoClassificadaPorque:
         vigente && vigente.situacao === 'NAO_CLASSIFICADA' ? vigente.motivo : null,
-      versaoDoConjunto: vigente?.conjunto.versao ?? '—',
+      versaoDoConjunto: vigente?.conjunto.versao ?? 'não informado',
       /* Ausência de classificação não é "validado": na dúvida, a interface avisa. */
       validadoClinicamente: vigente?.conjunto.validadoClinicamente ?? false,
       respostas,

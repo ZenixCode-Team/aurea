@@ -135,7 +135,7 @@ export function CorVerde() {
         {
           titulo: "O que isso quer dizer",
           corpo:
-            "Os sintomas que você marcou estão dentro do que se espera para o seu tratamento neste momento do ciclo. Verde não quer dizer que você está bem — quer dizer que o que você sentiu hoje não pede uma ligação agora.",
+            "Os sintomas que você marcou estão dentro do que se espera para o seu tratamento neste momento do ciclo. Verde não quer dizer que você está bem; quer dizer que o que você sentiu hoje não pede uma ligação agora.",
         },
         {
           titulo: "O que você faz",
@@ -162,7 +162,7 @@ export function CorAmbar() {
       numero="05"
       rotulo="Amarelo"
       titulo="Amarelo é a equipe olhando junto."
-      chamada="Alguma coisa no que você respondeu merece acompanhamento hoje — não é emergência, e também não é para deixar passar."
+      chamada="Alguma coisa no que você respondeu merece acompanhamento hoje; não é emergência, e também não é para deixar passar."
       corDeFundo="#e8a33d"
       paleta="ambar"
       classes={{
@@ -182,7 +182,7 @@ export function CorAmbar() {
         {
           titulo: "O que você faz",
           corpo:
-            "A tela mostra a orientação do seu tratamento para aquele sintoma. Se houver remédio a tomar, só aparece o que já está na sua receita — nada novo é sugerido.",
+            "A tela mostra a orientação do seu tratamento para aquele sintoma. Se houver remédio a tomar, só aparece o que já está na sua receita; nada novo é sugerido.",
         },
         {
           titulo: "O que a equipe faz",
@@ -219,7 +219,7 @@ export function CorVermelho() {
         {
           titulo: "O que isso quer dizer",
           corpo:
-            "Febre alta, muitos episódios seguidos, sangue, falta de ar mesmo parado. Em quem está fazendo quimioterapia, esses sinais não esperam o próximo dia — o corpo está com menos defesa para segurar sozinho.",
+            "Febre alta, muitos episódios seguidos, sangue, falta de ar mesmo parado. Em quem está fazendo quimioterapia, esses sinais não esperam o próximo dia; o corpo está com menos defesa para segurar sozinho.",
         },
         {
           titulo: "O que você faz",
@@ -232,7 +232,7 @@ export function CorVermelho() {
             "A enfermagem é avisada imediatamente e o seu nome vai para o topo da lista do dia. Quem atender você já vai saber o que você respondeu antes de chegar.",
         },
       ]}
-      fecho="Vermelho não é um diagnóstico. Ninguém está dizendo o que você tem — está dizendo que isso precisa ser avaliado por uma pessoa, agora, e não amanhã."
+      fecho="Vermelho não é um diagnóstico. Ninguém está dizendo o que você tem; está dizendo que isso precisa ser avaliado por uma pessoa, agora, e não amanhã."
     />
   );
 }

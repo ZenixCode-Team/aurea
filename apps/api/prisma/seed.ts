@@ -159,7 +159,7 @@ async function main() {
       descricao:
         'Conjunto provisório de demonstração. Nenhum corte foi validado clinicamente. Existe para que o sistema ' +
         'funcione enquanto o protocolo de graduação de toxicidade do serviço não é definido.',
-      origem: 'PROVISÓRIO — sem base clínica. Aguarda definição do orientador (CTCAE ou protocolo institucional).',
+      origem: 'PROVISÓRIO, sem base clínica. Aguarda definição do orientador (CTCAE ou protocolo institucional).',
       validadoClinicamente: false,
       combinacao: 'PIOR_ISOLADO',
       efeitoDoAntitermico: 'IGNORAR',
@@ -185,7 +185,7 @@ async function main() {
         'Comer em porções pequenas ao longo do dia costuma pesar menos do que três refeições grandes. ' +
         'Beba líquidos em goles, mesmo sem vontade. Se o enjoo não passar ou você não conseguir beber água, ' +
         'avise a equipe.',
-      autoria: 'RASCUNHO — sem autoria clínica definida',
+      autoria: 'RASCUNHO, sem autoria clínica definida',
       publicado: false,
     },
   });
@@ -282,7 +282,7 @@ async function main() {
         ordem: 1,
         titulo: 'Dor',
         corpo:
-          'Se você tem remédio para dor receitado, use conforme a receita. Anote onde dói e em que horas piora — ' +
+          'Se você tem remédio para dor receitado, use conforme a receita. Anote onde dói e em que horas piora; ' +
           'isso ajuda a equipe. Se a dor aumentar, toque em "Falar com a enfermagem".',
       },
       {

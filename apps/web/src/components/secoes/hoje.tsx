@@ -19,7 +19,7 @@ import { TituloRevelado } from "../titulo-revelado";
 const CONTRASTES = [
   {
     eixo: "Quando os efeitos aparecem",
-    hoje: "Em casa, nos dias entre uma sessão e outra — longe do hospital.",
+    hoje: "Em casa, nos dias entre uma sessão e outra, longe do hospital.",
     aurea: "Nos mesmos dias. A diferença é que alguém pergunta ali.",
   },
   {
@@ -124,7 +124,7 @@ export function Hoje() {
         className="mt-14 max-w-[62ch] text-lg leading-relaxed text-tinta-suave"
       >
         Os efeitos da quimioterapia costumam aparecer nos dias em que você
-        está em casa. O AUREA não muda o seu tratamento — ele coloca a
+        está em casa. O AUREA não muda o seu tratamento; ele coloca a
         pergunta no dia certo e leva a sua resposta para quem sabe o que
         fazer com ela.
       </p>
