@@ -3,8 +3,9 @@
 # O contexto de build é a RAIZ do monorepo: `@aurea/contratos` é pacote de workspace.
 
 FROM node:22-slim AS base
+# curl: a sonda de saúde da Coolify roda dentro do contêiner e depende dele.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates tzdata \
+ && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
  && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@11.5.1 --activate
 

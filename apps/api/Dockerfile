@@ -10,8 +10,10 @@ FROM node:22-slim AS base
 # de build — imagem slim sem openssl sobe e só quebra na primeira query.
 # tzdata: sem ele o contêiner não conhece America/Sao_Paulo e toda conta de dia do
 # ciclo passa a ser feita em UTC, silenciosamente.
+# curl: a sonda de saúde da Coolify roda DENTRO do contêiner e tenta `curl`, depois
+# `wget`. Sem nenhum dos dois o contêiner sobe saudável e é declarado morto.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates tzdata \
+ && apt-get install -y --no-install-recommends openssl ca-certificates tzdata curl \
  && rm -rf /var/lib/apt/lists/*
 
 # `corepack prepare` baixa o pnpm AQUI, na camada compartilhada pelos dois estágios. Sem
