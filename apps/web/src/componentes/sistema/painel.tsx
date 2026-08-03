@@ -592,6 +592,7 @@ export function BarraLateral({
   caminhoAtual,
   destaque,
   rodape,
+  className,
 }: {
   produto: string;
   contexto: string;
@@ -600,9 +601,16 @@ export function BarraLateral({
   /** Bloco de aviso acima do rodapé — o lugar do "CHANGELOG" na ref. */
   destaque?: ReactNode;
   rodape?: ReactNode;
+  /** Só para esconder a lateral onde ela não cabe. Ver `barraInferior` no shell. */
+  className?: string;
 }) {
   return (
-    <aside className="flex h-dvh w-[16rem] shrink-0 flex-col border-r border-[var(--color-borda)] bg-[var(--color-nav-fundo)]">
+    <aside
+      className={juntar(
+        'h-dvh w-[16rem] shrink-0 flex-col border-r border-[var(--color-borda)] bg-[var(--color-nav-fundo)]',
+        className ?? 'flex',
+      )}
+    >
       <div className="flex items-center gap-2.5 px-4 py-[0.9375rem]">
         {/* A marca em quadrado: âncora visual fixa, do jeito que Vercel e Mixpanel
             ancoram o topo da barra. */}
@@ -697,12 +705,15 @@ export function BarraDoTopo({
   aoAlternarBarra,
   barraVisivel,
   acoes,
+  ocultarAlternador,
 }: {
   secoes: readonly SecaoDeNavegacao[];
   caminhoAtual: string;
   aoAlternarBarra(): void;
   barraVisivel: boolean;
   acoes?: ReactNode;
+  /** Some onde a lateral já está escondida: recolher o que não aparece confunde. */
+  ocultarAlternador?: boolean;
 }) {
   const atual = itemAtivo(secoes, caminhoAtual);
 
@@ -716,7 +727,10 @@ export function BarraDoTopo({
         onClick={aoAlternarBarra}
         aria-pressed={barraVisivel}
         aria-label={barraVisivel ? 'Recolher a navegação' : 'Mostrar a navegação'}
-        className="flex h-9 w-9 items-center justify-center rounded-[0.625rem] text-[var(--color-texto-suave)] transition-colors hover:bg-[var(--color-nav-hover)] hover:text-[var(--color-texto)]"
+        className={juntar(
+          'h-9 w-9 items-center justify-center rounded-[0.625rem] text-[var(--color-texto-suave)] transition-colors hover:bg-[var(--color-nav-hover)] hover:text-[var(--color-texto)]',
+          ocultarAlternador ? 'hidden lg:flex' : 'flex',
+        )}
       >
         <Icone nome="barra" />
       </button>
@@ -781,6 +795,8 @@ export function ShellDePainel({
   destaque,
   rodape,
   acoes,
+  barraInferior,
+  larguraDoConteudo = 'ampla',
   children,
 }: {
   produto: string;
@@ -790,6 +806,24 @@ export function ShellDePainel({
   destaque?: ReactNode;
   rodape?: ReactNode;
   acoes?: ReactNode;
+  /**
+   * Navegação alternativa para telas estreitas — na prática, a barra de polegar do
+   * app do paciente.
+   *
+   * Quando vem preenchida, a lateral some abaixo de `lg` e esta barra aparece no
+   * lugar. Quando não vem, nada muda: os painéis da equipe e da administração
+   * continuam com a lateral em qualquer largura, que é o comportamento que eles já
+   * tinham. A escolha de amarrar as duas coisas na MESMA prop é deliberada — quem
+   * esconder a lateral no celular é obrigado, pelo tipo, a dizer o que entra no
+   * lugar dela. Não existe estado "sem navegação nenhuma".
+   */
+  barraInferior?: ReactNode;
+  /**
+   * `ampla` (80rem) para tabela de plantão; `leitura` (56rem) para texto corrido.
+   * O app do paciente é texto: 80rem faz a linha passar de 120 caracteres, e aí
+   * o olho perde a volta da linha.
+   */
+  larguraDoConteudo?: 'ampla' | 'leitura';
   children: ReactNode;
 }) {
   const [barraVisivel, setBarraVisivel] = useState(true);
@@ -804,6 +838,7 @@ export function ShellDePainel({
           caminhoAtual={caminhoAtual}
           destaque={destaque}
           rodape={rodape}
+          className={barraInferior ? 'hidden lg:flex' : undefined}
         />
       )}
 
@@ -814,10 +849,24 @@ export function ShellDePainel({
           barraVisivel={barraVisivel}
           aoAlternarBarra={() => setBarraVisivel((visivel) => !visivel)}
           acoes={acoes}
+          ocultarAlternador={Boolean(barraInferior)}
         />
-        <main className="min-w-0 flex-1 overflow-y-auto px-8 py-7">
-          <div className="mx-auto max-w-[80rem]">{children}</div>
+        <main
+          className={juntar(
+            'min-w-0 flex-1 overflow-y-auto px-5 py-6 md:px-8 md:py-7',
+            Boolean(barraInferior) && 'pb-28 lg:pb-7',
+          )}
+        >
+          <div
+            className={juntar(
+              'mx-auto',
+              larguraDoConteudo === 'leitura' ? 'max-w-[56rem]' : 'max-w-[80rem]',
+            )}
+          >
+            {children}
+          </div>
         </main>
+        {barraInferior ? <div className="lg:hidden">{barraInferior}</div> : null}
       </div>
     </div>
   );
