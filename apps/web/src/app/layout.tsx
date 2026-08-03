@@ -83,6 +83,32 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     type: "website",
   },
+  /**
+   * Ambiente de demonstração fora de buscador.
+   *
+   * O conjunto de limiares em uso é o `rascunho-0`, que NÃO foi validado clinicamente, e
+   * a senha de acesso está escrita no README do repositório. Nada aqui é dado de pessoa
+   * real — mas software clínico não validado aparecendo em busca de sintoma é dano que
+   * não se desfaz com correção depois.
+   *
+   * Não existe `Disallow` em robots.txt de propósito: bloquear o rastreamento impede o
+   * robô de LER este `noindex`, e uma URL descoberta por link de fora acaba indexada
+   * assim mesmo, só que sem descrição. Para tirar do índice é preciso deixar entrar e
+   * dizer para não indexar. Reforço no cabeçalho `X-Robots-Tag` (`next.config.ts`), que
+   * cobre também o que não é HTML.
+   *
+   * Isto sai quando o AUREA tiver corte assinado por responsável clínico e endereço
+   * próprio — aí a landing passa a querer ser encontrada.
+   */
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export const viewport: Viewport = {
