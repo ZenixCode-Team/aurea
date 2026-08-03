@@ -63,6 +63,49 @@ export function formatarDataEHora(iso: string): string {
   return `${formatarData(iso)} às ${formatarHora(iso)}`;
 }
 
+/**
+ * O número do dia, para a âncora de data das listas por mês.
+ *
+ * Dentro de uma seção que já se chama "Julho de 2026", repetir `29/07/2026` em cada
+ * linha é ruído: o mês e o ano estão no cabeçalho, e o que distingue uma linha da
+ * outra é o dia.
+ */
+export function formatarNumeroDoDia(iso: string): string {
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', timeZone: FUSO }).format(
+    paraData(iso),
+  );
+}
+
+/** "qui" — o dia da semana abreviado, sem o ponto que o `Intl` acrescenta em pt-BR. */
+export function formatarDiaDaSemana(iso: string): string {
+  const texto = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'short',
+    timeZone: FUSO,
+  }).format(paraData(iso));
+  return texto.replace('.', '');
+}
+
+/**
+ * A distância até um compromisso, em linguagem de gente.
+ *
+ * "em 3 dias" responde a pergunta que a pessoa realmente faz ao abrir a agenda, e
+ * que `17 de agosto` só responde depois de uma conta mental. Passado devolve `null`:
+ * dizer "há 5 dias" num compromisso que já aconteceu não ajuda ninguém a se
+ * organizar, e a lista já mostra que ele ficou para trás.
+ */
+export function formatarDistanciaEmDias(iso: string, referencia = new Date()): string | null {
+  const alvo = new Date(paraData(iso));
+  alvo.setHours(0, 0, 0, 0);
+  const hoje = new Date(referencia);
+  hoje.setHours(0, 0, 0, 0);
+
+  const dias = Math.round((alvo.getTime() - hoje.getTime()) / 86_400_000);
+  if (dias < 0) return null;
+  if (dias === 0) return 'hoje';
+  if (dias === 1) return 'amanhã';
+  return `em ${dias} dias`;
+}
+
 /** "hoje", "ontem" ou a data. Usado onde a distância importa mais que o dia exato. */
 export function formatarDiaRelativo(iso: string, referencia = new Date()): string {
   const dia = paraData(iso);
