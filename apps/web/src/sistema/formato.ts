@@ -149,12 +149,18 @@ export const ROTULO_DO_EVENTO: Record<TipoDeEvento, string> = {
   OUTRO: 'Compromisso',
 };
 
+/** As dez do enum `CategoriaDaBiblioteca` no banco. Sem chave faltando, sem chave a mais. */
 export const ROTULO_DA_CATEGORIA: Record<string, string> = {
+  MEDICAMENTOS: 'Medicamentos',
   ALIMENTACAO: 'Alimentação',
-  CUIDADOS_EM_CASA: 'Cuidados em casa',
-  EFEITOS_COLATERAIS: 'Efeitos colaterais',
-  QUANDO_PROCURAR_AJUDA: 'Quando procurar ajuda',
-  TRATAMENTO: 'Sobre o tratamento',
+  MUCOSITE: 'Boca e garganta',
+  CATETER: 'Cateter',
+  QUEDA_DE_CABELO: 'Queda de cabelo',
+  DIARREIA: 'Diarreia',
+  CONSTIPACAO: 'Intestino preso',
+  EXERCICIOS: 'Movimento e descanso',
+  VACINAS: 'Vacinas',
+  DIREITOS_DO_PACIENTE: 'Seus direitos',
 };
 
 export const ROTULO_DO_OPERADOR: Record<string, string> = {

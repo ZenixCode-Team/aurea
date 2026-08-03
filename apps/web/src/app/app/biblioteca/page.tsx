@@ -31,6 +31,7 @@ import {
   Carregando,
   EstadoVazio,
   Rotulo,
+  SeloDeNaoValidado,
 } from '@/componentes/sistema/primitivos';
 import { buscarBiblioteca, buscarVerbete } from '@/sistema/fonte';
 import { ROTULO_DA_CATEGORIA } from '@/sistema/formato';
@@ -102,6 +103,11 @@ export default function PaginaDeBiblioteca() {
       <CabecalhoDePainel
         titulo="Biblioteca"
         descricao="Os textos que a sua equipe deixou disponíveis. Toque em um assunto para ler."
+        /* O mural exibe a marca de não validado e a biblioteca não exibia nada, apesar
+           de o conteúdo estar no mesmo estado: rascunho, sem assinatura clínica. Duas
+           telas com o mesmo conteúdo e avisos diferentes ensinam a pessoa a confiar
+           mais numa do que na outra, sem motivo. */
+        acao={<SeloDeNaoValidado />}
       />
 
       {biblioteca.length === 0 ? (

@@ -133,6 +133,28 @@ function aceitarCorpoVazio(app: FastifyInstance) {
   );
 }
 
+/**
+ * O primeiro parágrafo do verbete, cortado no fim de frase.
+ *
+ * Corte em contagem de caracteres partiria palavra ao meio e produziria resumo que
+ * termina em "atenção me…". Aqui o corte é no último ponto final antes do limite; se
+ * não houver nenhum, cai para reticências. O primeiro parágrafo é escolha editorial:
+ * quem escreve verbete abre dizendo do que se trata.
+ */
+const LIMITE_DO_RESUMO = 160;
+
+export function resumirVerbete(corpo: string): string {
+  const primeiroParagrafo = corpo.split('\n\n')[0]?.trim() ?? '';
+  if (primeiroParagrafo.length <= LIMITE_DO_RESUMO) return primeiroParagrafo;
+
+  const recorte = primeiroParagrafo.slice(0, LIMITE_DO_RESUMO);
+  const ultimoPonto = recorte.lastIndexOf('. ');
+  if (ultimoPonto > 60) return recorte.slice(0, ultimoPonto + 1);
+
+  const ultimoEspaco = recorte.lastIndexOf(' ');
+  return `${recorte.slice(0, ultimoEspaco > 0 ? ultimoEspaco : LIMITE_DO_RESUMO)}…`;
+}
+
 export async function rotasDoPaciente(app: FastifyInstance) {
   aceitarCorpoVazio(app);
 
@@ -391,10 +413,25 @@ export async function rotasDoPaciente(app: FastifyInstance) {
       },
       orderBy: fatia.ordenacao,
       take: fatia.quantidade,
-      select: { id: true, categoria: true, titulo: true, autoria: true, revisadoEm: true },
+      /* `corpo` entra no select só para virar `resumo` logo abaixo, e NÃO é devolvido.
+         A listagem sem resumo deixava o cartão com título e mais nada — a tela mostra
+         título e resumo antes de qualquer toque, e era isso que faltava chegar. */
+      select: {
+        id: true,
+        categoria: true,
+        titulo: true,
+        corpo: true,
+        autoria: true,
+        revisadoEm: true,
+      },
     });
 
-    return montarPagina(linhas, chave, parametros);
+    const itens = linhas.map(({ corpo, ...resto }) => ({
+      ...resto,
+      resumo: resumirVerbete(corpo),
+    }));
+
+    return montarPagina(itens, chave, parametros);
   });
 
   /** Um verbete. Não publicado responde 404 — não confirma nem que o rascunho existe. */

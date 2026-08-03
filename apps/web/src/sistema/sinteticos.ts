@@ -150,11 +150,11 @@ export const AGENDA_SINTETICA: readonly ItemDaAgenda[] = [
 export const BIBLIOTECA_SINTETICA: readonly Verbete[] = [
   {
     id: 'v-1',
-    titulo: 'Quando a febre precisa de atenção imediata',
-    resumo: 'Febre durante a quimioterapia não é como uma febre comum.',
-    categoria: 'QUANDO_PROCURAR_AJUDA',
+    titulo: 'Como organizar os remédios em casa',
+    resumo: 'Separe por horário, não por caixa, e não comece nada por conta própria.',
+    categoria: 'MEDICAMENTOS',
     conteudo:
-      'Durante a quimioterapia, a defesa do corpo fica mais baixa. Por isso a febre pede atenção mesmo quando você se sente bem no resto.\n\nMeça a temperatura sempre que sentir calor, calafrio ou moleza. Se passar de 37,8 °C, entre em contato com a equipe no mesmo dia; não espere a febre subir mais para ver o que acontece.\n\nNão tome remédio para baixar a febre antes de falar com a equipe. O remédio esconde o sinal e atrasa a avaliação.',
+      'Durante o tratamento a lista de remédios costuma crescer, e alguns têm horário fixo enquanto outros são só se precisar. Confundir os dois é o engano mais comum.\n\nSepare por horário, não por caixa. Um porta-comprimidos de sete dias resolve mais do que qualquer aplicativo, porque mostra num olhar o que já foi tomado.\n\nNão comece nada por conta própria, nem chá, nem vitamina, nem remédio que ajudou alguém conhecido. Interação com quimioterapia não é raridade.',
     atualizadoEm: em('2026-06-02'),
   },
   {
@@ -170,18 +170,18 @@ export const BIBLIOTECA_SINTETICA: readonly Verbete[] = [
     id: 'v-3',
     titulo: 'Cuidados com a boca durante o tratamento',
     resumo: 'Escova macia, bochecho sem álcool e atenção a feridas.',
-    categoria: 'CUIDADOS_EM_CASA',
+    categoria: 'MUCOSITE',
     conteudo:
       'A quimioterapia pode deixar a boca sensível, com feridas ou ardência.\n\nUse escova de cerdas macias e evite enxaguante com álcool, que arde e resseca. Bochecho com água morna e uma pitada de sal ajuda a manter a boca limpa.\n\nSe aparecer ferida que atrapalhe comer ou beber, avise a equipe.',
     atualizadoEm: em('2026-06-02'),
   },
   {
     id: 'v-4',
-    titulo: 'Por que o check-in é todo dia',
-    resumo: 'A pergunta diária serve para achar o sinal cedo, não para vigiar você.',
-    categoria: 'TRATAMENTO',
+    titulo: 'Movimento e descanso',
+    resumo: 'O cansaço do tratamento não passa só com sono, e ficar parado costuma piorá-lo.',
+    categoria: 'EXERCICIOS',
     conteudo:
-      'O check-in leva cerca de dois minutos e existe por um motivo simples: efeito colateral achado no começo é muito mais fácil de resolver.\n\nResponder que está tudo bem é tão útil quanto relatar um sintoma; é assim que a equipe sabe que o dia foi tranquilo.\n\nSe você não conseguir responder um dia, tudo bem. A equipe vê que faltou resposta e entra em contato.',
+      'O cansaço do tratamento é diferente do cansaço comum: não passa só com sono. E, ao contrário do que parece, ficar parado o dia inteiro costuma aumentá-lo.\n\nCaminhada leve, na maioria dos dias, é o que tem mais evidência a favor. A régua é conseguir conversar enquanto se movimenta.\n\nDistribua as tarefas ao longo da semana em vez de concentrar tudo num dia bom.',
     atualizadoEm: em('2026-06-02'),
   },
 ];

@@ -131,12 +131,27 @@ export interface ItemDaAgenda {
   } | null;
 }
 
+/**
+ * As categorias da biblioteca, iguais ao enum do banco.
+ *
+ * Estavam diferentes: o front tinha cinco nomes inventados para o dado sintético
+ * (`CUIDADOS_EM_CASA`, `EFEITOS_COLATERAIS`, `QUANDO_PROCURAR_AJUDA`, `TRATAMENTO`) e
+ * o banco tem estes dez. Só `ALIMENTACAO` coincidia. O efeito não era erro de
+ * compilação — a resposta da API não é validada contra o tipo —, era a tela mostrando
+ * `QUEDA_DE_CABELO` cru como nome de seção, porque o mapa de rótulos não achava a
+ * chave. Quem manda é o banco.
+ */
 export type CategoriaDaBiblioteca =
+  | 'MEDICAMENTOS'
   | 'ALIMENTACAO'
-  | 'CUIDADOS_EM_CASA'
-  | 'EFEITOS_COLATERAIS'
-  | 'QUANDO_PROCURAR_AJUDA'
-  | 'TRATAMENTO';
+  | 'MUCOSITE'
+  | 'CATETER'
+  | 'QUEDA_DE_CABELO'
+  | 'DIARREIA'
+  | 'CONSTIPACAO'
+  | 'EXERCICIOS'
+  | 'VACINAS'
+  | 'DIREITOS_DO_PACIENTE';
 
 export interface VerbeteResumido {
   readonly id: string;

@@ -15,6 +15,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { REGRAS_DO_RASCUNHO, VERSAO_DO_CONJUNTO_RASCUNHO } from './conjunto-rascunho-0.js';
+import { publicarVerbetes } from './verbetes-da-biblioteca.js';
 
 const prisma = new PrismaClient();
 
@@ -400,8 +401,14 @@ async function main() {
     console.log(`  paciente "${sintetico.nome}" — CPF ${cpf} — dia ${sintetico.diaDoCiclo} do ciclo`);
   }
 
+  /* A biblioteca vem do mesmo arquivo que publica em produção — uma fonte de
+     conteúdo, dois caminhos até o banco. Aqui roda no banco recém-limpo; lá roda
+     sozinha, sem apagar nada. */
+  const biblioteca = await publicarVerbetes(prisma);
+
   console.log('');
   console.log('Seed concluído.');
+  console.log(`  biblioteca: ${biblioteca.criados} verbetes publicados (rascunho, sem autoria clínica)`);
   console.log(`  conjunto de limiares: ${VERSAO_DO_CONJUNTO_RASCUNHO} (NÃO validado clinicamente)`);
   console.log(`  regras de corte: ${REGRAS_DO_RASCUNHO.length}`);
   console.log(`  admin: admin@aurea.local | enfermagem: enfermagem@aurea.local | senha: ${SENHA_DE_DEMONSTRACAO}`);
