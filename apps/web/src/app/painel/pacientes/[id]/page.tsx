@@ -32,7 +32,11 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { Modal } from '@/componentes/sistema/modal';
-import { ErroDaFonte, buscarHistoricoNoPainel } from '@/sistema/fonte';
+import {
+  ErroDaFonte,
+  buscarHistoricoNoPainel,
+  registrarIntervencao,
+} from '@/sistema/fonte';
 import {
   formatarData,
   formatarDataEHora,
@@ -110,6 +114,8 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
   >({});
   const [sessaoNoModal, setSessaoNoModal] = useState<string | null>(null);
   const [sessaoConfirmada, setSessaoConfirmada] = useState<string | null>(null);
+  /** Falha ao gravar a conduta. Precisa aparecer: registro clínico que não salvou não pode passar por salvo. */
+  const [erroDoRegistro, setErroDoRegistro] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -134,24 +140,58 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
     };
   }, [id]);
 
-  function registrarIntervencao(
+  /**
+   * Registra a conduta NO SERVIDOR, e só depois confirma na tela.
+   *
+   * Esta função se chamava `registrarIntervencao`, exatamente como a função de API
+   * em `sistema/fonte.ts`. O nome igual é a razão de o defeito ter sobrevivido a
+   * revisão: no ponto de uso, `registrarIntervencao(...)` lia como chamada à API e
+   * era chamada ao estado local. A enfermagem registrava a conduta, via aparecer na
+   * tela, e o registro morria no recarregar — sem chegar ao prontuário e sem o resto
+   * do plantão nunca ver. Renomeada de propósito: nenhuma função local volta a
+   * disputar nome com a camada de dados.
+   *
+   * A inserção é otimista porque o plantão não pode esperar ida e volta de rede para
+   * seguir. Mas ela é DESFEITA se o servidor recusar, e o erro aparece na tela: em
+   * registro clínico, mostrar "salvo" para algo que não salvou é pior do que travar.
+   */
+  async function registrarIntervencaoNaSessao(
     sessaoId: string,
     conduta: string,
     situacaoDoSintoma: SituacaoDoSintoma,
   ) {
+    const idOtimista = `intervencao-local-${Date.now()}`;
     const nova: Intervencao = {
-      id: `intervencao-local-${Date.now()}`,
+      id: idOtimista,
       registradaEm: new Date().toISOString(),
       profissional: usuario?.nome ?? 'Profissional do plantão',
       conduta,
       situacaoDoSintoma,
     };
+
+    setErroDoRegistro(null);
     setIntervencoesLocais((atual) => ({
       ...atual,
       [sessaoId]: [nova, ...(atual[sessaoId] ?? [])],
     }));
     setSessaoNoModal(null);
     setSessaoConfirmada(sessaoId);
+
+    try {
+      await registrarIntervencao(sessaoId, conduta, situacaoDoSintoma);
+    } catch (motivo: unknown) {
+      /* Tira da tela o que não existe no banco. */
+      setIntervencoesLocais((atual) => ({
+        ...atual,
+        [sessaoId]: (atual[sessaoId] ?? []).filter((item) => item.id !== idOtimista),
+      }));
+      setSessaoConfirmada(null);
+      setErroDoRegistro(
+        motivo instanceof ErroDaFonte
+          ? motivo.message
+          : 'A conduta não foi salva. Registre de novo antes de sair da tela.',
+      );
+    }
   }
 
   const acaoDeVoltar = (
@@ -388,11 +428,19 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
         ))}
       </div>
 
+      {erroDoRegistro && (
+        <div className="mt-4">
+          <Aviso tom="grave" titulo="A conduta não foi registrada">
+            {erroDoRegistro}
+          </Aviso>
+        </div>
+      )}
+
       <ModalDeIntervencao
         aberto={sessaoNoModal !== null}
         aoFechar={() => setSessaoNoModal(null)}
         aoConfirmar={(conduta, situacao) => {
-          if (sessaoNoModal) registrarIntervencao(sessaoNoModal, conduta, situacao);
+          if (sessaoNoModal) void registrarIntervencaoNaSessao(sessaoNoModal, conduta, situacao);
         }}
       />
     </>
