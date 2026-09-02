@@ -41,7 +41,6 @@ export default function PaginaDeMedicamentos() {
 
   const [nome, setNome] = useState('');
   const [principioAtivo, setPrincipioAtivo] = useState('');
-  const [viaPadrao, setViaPadrao] = useState('');
   const [erroDoFormulario, setErroDoFormulario] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,11 +63,17 @@ export default function PaginaDeMedicamentos() {
   function abrirModal() {
     setNome('');
     setPrincipioAtivo('');
-    setViaPadrao('');
     setErroDoFormulario(null);
     setModalAberto(true);
   }
 
+  /* "Via padrão" saiu do formulário.
+     Ela era coletada e descartada em `salvar()` — o usuário preenchia um campo que
+     nunca chegava a lugar nenhum. A causa é mais funda que o descarte: `Medicamento`
+     não tem essa coluna no schema (`apps/api/prisma/schema.prisma`, model
+     Medicamento). Guardar num tipo de contrato da API só no front repetiria a
+     divergência front/banco que já mordeu a biblioteca. Campo que não tem destino
+     mente para quem preenche; então sai. Voltar exige migration, e isso é Onda F. */
   function salvar() {
     if (!nome.trim()) {
       setErroDoFormulario('Informe o nome do medicamento.');
@@ -170,12 +175,6 @@ export default function PaginaDeMedicamentos() {
             rotulo="Princípio ativo"
             value={principioAtivo}
             onChange={(evento) => setPrincipioAtivo(evento.target.value)}
-          />
-          <Campo
-            rotulo="Via padrão"
-            placeholder="ex.: Oral"
-            value={viaPadrao}
-            onChange={(evento) => setViaPadrao(evento.target.value)}
           />
           {erroDoFormulario && (
             <p role="alert" className="text-xs text-[var(--color-risco-vermelho)]">
