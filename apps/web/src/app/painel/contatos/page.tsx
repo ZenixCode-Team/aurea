@@ -23,7 +23,11 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { Modal } from '@/componentes/sistema/modal';
-import { ErroDaFonte, buscarFilaDeContatos } from '@/sistema/fonte';
+import {
+  ErroDaFonte,
+  atenderSolicitacao,
+  buscarFilaDeContatos,
+} from '@/sistema/fonte';
 import { formatarDataEHora, formatarTelefone } from '@/sistema/formato';
 import type { SituacaoDaSolicitacao, SolicitacaoNaFila } from '@/sistema/tipos';
 
@@ -44,6 +48,8 @@ export default function PaginaDeSolicitacoesDeContato() {
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [solicitacaoNoModal, setSolicitacaoNoModal] = useState<string | null>(null);
   const [confirmacaoVisivelPara, setConfirmacaoVisivelPara] = useState<string | null>(null);
+  /** Falha ao gravar o atendimento. Some da fila sem gravar = paciente esperando retorno fantasma. */
+  const [erroDoAtendimento, setErroDoAtendimento] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -64,7 +70,23 @@ export default function PaginaDeSolicitacoesDeContato() {
     };
   }, []);
 
-  function atender(solicitacaoId: string) {
+  /**
+   * Fecha o atendimento NO SERVIDOR, levando junto o que foi conversado.
+   *
+   * O `registro` que o modal coleta era descartado aqui: a função recebia só o id,
+   * marcava a solicitação como atendida no estado local e o texto do atendimento
+   * ia para o lixo. Na tela parecia resolvido; no banco, o pedido continuava aberto
+   * e o conteúdo da conversa não existia em lugar nenhum — nem para a próxima
+   * enfermeira do plantão, nem para a trilha que a regra 5 do ADR-001 exige.
+   *
+   * Atualização otimista com desfazer: a fila responde na hora, e volta atrás se o
+   * servidor recusar. Pedido de contato que sai da fila sem ter sido gravado é
+   * paciente esperando retorno que ninguém sabe que deve dar.
+   */
+  async function atender(solicitacaoId: string, registro: string) {
+    const filaAnterior = fila;
+
+    setErroDoAtendimento(null);
     setFila((atual) =>
       (atual ?? []).map((item) =>
         item.id === solicitacaoId
@@ -74,6 +96,18 @@ export default function PaginaDeSolicitacoesDeContato() {
     );
     setSolicitacaoNoModal(null);
     setConfirmacaoVisivelPara(solicitacaoId);
+
+    try {
+      await atenderSolicitacao(solicitacaoId, registro);
+    } catch (motivo: unknown) {
+      setFila(filaAnterior);
+      setConfirmacaoVisivelPara(null);
+      setErroDoAtendimento(
+        motivo instanceof ErroDaFonte
+          ? motivo.message
+          : 'O atendimento não foi salvo. O pedido continua na fila.',
+      );
+    }
   }
 
   const filaOrdenada = useMemo(() => {
@@ -176,11 +210,19 @@ export default function PaginaDeSolicitacoesDeContato() {
         </>
       )}
 
+      {erroDoAtendimento && (
+        <div className="mt-4">
+          <Aviso tom="grave" titulo="O atendimento não foi registrado">
+            {erroDoAtendimento}
+          </Aviso>
+        </div>
+      )}
+
       <ModalDeAtendimento
         aberto={solicitacaoNoModal !== null}
         aoFechar={() => setSolicitacaoNoModal(null)}
-        aoConfirmar={() => {
-          if (solicitacaoNoModal) atender(solicitacaoNoModal);
+        aoConfirmar={(registro) => {
+          if (solicitacaoNoModal) void atender(solicitacaoNoModal, registro);
         }}
       />
     </>
