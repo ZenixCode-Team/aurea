@@ -390,10 +390,27 @@ export function Aviso({
    Tabela — densidade é qualidade no painel
    ========================================================================== */
 
-export function Tabela({ children, rotulo }: { children: ReactNode; rotulo: string }) {
+export function Tabela({
+  children,
+  rotulo,
+  larguraMinima,
+}: {
+  children: ReactNode;
+  rotulo: string;
+  /**
+   * Largura abaixo da qual a tabela passa a rolar na horizontal em vez de espremer as
+   * colunas, ex.: `'62rem'`. Sem isso o navegador reparte o espaco que falta comprimindo
+   * as colunas de texto ate elas quebrarem palavra por linha, que foi o que aconteceu
+   * com a coluna Descricao da tela de conjuntos.
+   */
+  larguraMinima?: string;
+}) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
+      <table
+        style={larguraMinima ? { minWidth: larguraMinima } : undefined}
+        className="w-full border-collapse text-sm"
+      >
         <caption className="sr-only">{rotulo}</caption>
         {children}
       </table>
@@ -401,19 +418,47 @@ export function Tabela({ children, rotulo }: { children: ReactNode; rotulo: stri
   );
 }
 
-export function CabecalhoDaTabela({ colunas }: { colunas: readonly string[] }) {
+/**
+ * Coluna com largura e alinhamento declarados. A forma curta (uma string) continua
+ * valendo para as tabelas que nao precisam repartir espaco.
+ */
+export interface ColunaDaTabela {
+  readonly rotulo: string;
+  /** Largura declarada, ex.: `'12%'` ou `'9rem'`. */
+  readonly largura?: string;
+  readonly alinhamento?: 'esquerda' | 'direita';
+}
+
+export function CabecalhoDaTabela({
+  colunas,
+}: {
+  colunas: readonly (string | ColunaDaTabela)[];
+}) {
   return (
     <thead>
       <tr className="border-b border-[var(--color-borda-forte)]">
-        {colunas.map((coluna) => (
-          <th
-            key={coluna}
-            scope="col"
-            className="px-3 py-2 text-left font-mono text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-[var(--color-texto-fraco)]"
-          >
-            {coluna}
-          </th>
-        ))}
+        {colunas.map((coluna) => {
+          const definicao: ColunaDaTabela =
+            typeof coluna === 'string' ? { rotulo: coluna } : coluna;
+          return (
+            <th
+              key={definicao.rotulo}
+              scope="col"
+              style={definicao.largura ? { width: definicao.largura } : undefined}
+              className={juntar(
+                'px-3 py-2 font-mono text-[0.6875rem] font-medium uppercase text-[var(--color-texto-fraco)]',
+                'tracking-[0.14em]',
+                /* Cabecalho nao quebra linha. Com espacejamento de 0.14em a quebra
+                   separa PUBLICADO de EM e a coluna passa a parecer duas. Quando nao
+                   couber, quem cede e a tabela: ela rola na horizontal. */
+                'whitespace-nowrap',
+                definicao.alinhamento === 'direita' ? 'text-right' : 'text-left',
+              )}
+            >
+              {definicao.rotulo}
+            </th>
+          );
+        })}
       </tr>
     </thead>
   );
@@ -444,10 +489,18 @@ export function LinhaDaTabela({
 export function Celula({
   children,
   mono = false,
+  inteira = false,
+  alinhamento,
   className,
 }: {
   children: ReactNode;
   mono?: boolean;
+  /**
+   * Impede a quebra de linha. Data, hora e identificador sao unidades indivisiveis:
+   * `03/08/2026 as 10:11` partido em duas linhas vira duas informacoes na leitura.
+   */
+  inteira?: boolean;
+  alinhamento?: 'esquerda' | 'direita';
   className?: string;
 }) {
   return (
@@ -455,6 +508,8 @@ export function Celula({
       className={juntar(
         'px-3 py-2.5 align-top text-[var(--color-texto)]',
         mono && 'font-mono tabular-nums',
+        inteira && 'whitespace-nowrap',
+        alinhamento === 'direita' && 'text-right',
         className,
       )}
     >
@@ -520,7 +575,9 @@ export function SeloDeRisco({
  */
 export function SeloDeNaoValidado() {
   return (
-    <span className="inline-flex items-center rounded-full border border-[var(--color-borda-forte)] bg-[var(--color-superficie-baixa)] px-2.5 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-[var(--color-texto-suave)]">
+    /* `rounded-full` so fecha bem em conteudo de uma linha. Quebrado, o raio total
+       vira uma bolha e o selo deixa de parecer selo. */
+    <span className="inline-flex items-center whitespace-nowrap rounded-full border border-[var(--color-borda-forte)] bg-[var(--color-superficie-baixa)] px-2.5 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-[var(--color-texto-suave)]">
       Não validado clinicamente
     </span>
   );
