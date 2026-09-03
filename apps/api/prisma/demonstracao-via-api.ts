@@ -32,10 +32,25 @@ interface Resposta<T> {
   corpo: T;
 }
 
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Pausa entre chamadas.
+ *
+ * A API tem limite de taxa, e com razão: é uma defesa contra força bruta no login. O
+ * publicador faz centenas de chamadas em sequência e bate no limite — os check-ins
+ * falharam silenciosamente na primeira execução por isso. Aqui a lentidão é a resposta
+ * correta: baixar o limite do servidor para acomodar um script de demonstração seria
+ * enfraquecer a defesa por conveniência.
+ */
+const PAUSA_ENTRE_CHAMADAS = 220;
+
 async function chamar<T = unknown>(
   caminho: string,
-  opcoes: { metodo?: string; corpo?: unknown; token?: string } = {},
+  opcoes: { metodo?: string; corpo?: unknown; token?: string; tentativa?: number } = {},
 ): Promise<Resposta<T>> {
+  await esperar(PAUSA_ENTRE_CHAMADAS);
+
   const resposta = await fetch(`${API}${caminho}`, {
     method: opcoes.metodo ?? 'GET',
     headers: {
@@ -53,6 +68,17 @@ async function chamar<T = unknown>(
   } catch {
     corpo = texto;
   }
+
+  /* 429 com espera: o servidor diz quanto tempo, e a única resposta correta é esperar.
+     Uma tentativa só — se o limite persistir, o problema não é ritmo. */
+  const tentativa = opcoes.tentativa ?? 0;
+  if (resposta.status === 429 && tentativa < 1) {
+    const segundos = Number(resposta.headers.get('retry-after') ?? 21);
+    console.log(`  … limite de taxa, esperando ${segundos}s`);
+    await esperar((Number.isFinite(segundos) ? segundos : 21) * 1000);
+    return chamar<T>(caminho, { ...opcoes, tentativa: tentativa + 1 });
+  }
+
   return { status: resposta.status, corpo: corpo as T };
 }
 
@@ -72,12 +98,16 @@ async function entrar(
   return r.corpo.token;
 }
 
-/* Perfis fictícios. Os CPFs são válidos no dígito verificador e não pertencem a
-   ninguém: o sistema recusa CPF inválido no cadastro, e usar número real seria
-   inaceitável mesmo em demonstração. */
+/* Perfis fictícios.
+ *
+ * Os CPFs foram GERADOS: dígito verificador correto, para o cadastro aceitar, e
+ * sequência de raiz repetida (111444777, 222555888...) para que nenhum deles possa
+ * ser o CPF de uma pessoa real. Usar número plausível seria inaceitável mesmo em
+ * demonstração, e usar número inválido faria o sistema recusar — o que, aliás, foi o
+ * que aconteceu na primeira tentativa e provou que a validação funciona. */
 const PERFIS = [
   {
-    cpf: '52998224725',
+    cpf: '11144477735',
     nome: 'Marisa Andrade (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1971-04-12',
@@ -85,8 +115,8 @@ const PERFIS = [
     protocolo: 'AC-T (demonstração)',
     // Febre alta e vômito sem reter líquido: o motor classifica como vermelho.
     respostas: [
-      { sintoma: 'FEBRE', apresentouFebre: true, temperatura: 38.7 },
-      { sintoma: 'NAUSEA_VOMITO', sentiuEnjoo: true, episodiosEm24h: 6, consegueBeberLiquidos: false },
+      { sintoma: 'FEBRE', respostas: [ { campo: 'apresentouFebre', valorBooleano: true }, { campo: 'temperaturaMaxima', valorNumerico: 38.7 }, { campo: 'usouAntitermico', valorBooleano: false } ] },
+      { sintoma: 'NAUSEA_VOMITO', respostas: [ { campo: 'sentiuNausea', valorBooleano: true }, { campo: 'vomitou', valorBooleano: true }, { campo: 'episodiosDeVomito', valorNumerico: 6 }, { campo: 'consegueBeberLiquidos', valorBooleano: false }, { campo: 'consegueComer', valorBooleano: false } ] },
     ],
     social: { moraSozinho: true, dificuldadeDeTransporte: true, temCuidador: false },
     barreiras: [{ tipo: 'TRANSPORTE', descricao: 'Depende de carona da vizinha (fictício)' }],
@@ -94,7 +124,7 @@ const PERFIS = [
     internacao: { motivo: 'Neutropenia febril (fictícia)', haDias: 12, altaHaDias: 4 },
   },
   {
-    cpf: '87748248800',
+    cpf: '22255588846',
     nome: 'Rubens Tavares (fictício)',
     sexo: 'MASCULINO',
     nascimento: '1948-09-30',
@@ -106,32 +136,32 @@ const PERFIS = [
     internacao: { motivo: 'Desidratação (fictícia)', haDias: 2, altaHaDias: null },
   },
   {
-    cpf: '71428793860',
+    cpf: '33366699957',
     nome: 'Otávio Lins (fictício)',
     sexo: 'MASCULINO',
     nascimento: '1966-07-03',
     diagnostico: 'Câncer colorretal (fictício)',
     protocolo: 'FOLFOX (demonstração)',
-    respostas: [{ sintoma: 'DIARREIA', teveDiarreia: true, episodiosEm24h: 4 }],
+    respostas: [{ sintoma: 'DIARREIA', respostas: [ { campo: 'apresentouDiarreia', valorBooleano: true }, { campo: 'episodiosEm24h', valorNumerico: 4 }, { campo: 'presencaDeSangue', valorBooleano: false } ] }],
     social: { moraSozinho: false, dificuldadeDeTransporte: false, temCuidador: true },
     barreiras: [],
     pendencia: { tipo: 'AUTORIZACAO' },
   },
   {
-    cpf: '30880324880',
+    cpf: '44477700083',
     nome: 'Ivone Prado (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1959-11-17',
     diagnostico: 'Câncer de mama (fictício)',
     protocolo: 'AC-T (demonstração)',
     respostas: [
-      { sintoma: 'NAUSEA_VOMITO', sentiuEnjoo: true, episodiosEm24h: 3, consegueBeberLiquidos: true },
+      { sintoma: 'NAUSEA_VOMITO', respostas: [ { campo: 'sentiuNausea', valorBooleano: true }, { campo: 'vomitou', valorBooleano: true }, { campo: 'episodiosDeVomito', valorNumerico: 3 }, { campo: 'consegueBeberLiquidos', valorBooleano: true }, { campo: 'consegueComer', valorBooleano: true } ] },
     ],
     social: { moraSozinho: false, dificuldadeDeTransporte: true, temCuidador: true },
     barreiras: [{ tipo: 'AUTORIZACAO', descricao: 'Convênio em análise (fictício)' }],
   },
   {
-    cpf: '15350946056',
+    cpf: '55588811194',
     nome: 'Cleide Barros (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1983-01-22',
@@ -142,73 +172,73 @@ const PERFIS = [
     barreiras: [{ tipo: 'ANSIEDADE' }],
   },
   {
-    cpf: '95524361503',
+    cpf: '66699922203',
     nome: 'Hélio Braga (fictício)',
     sexo: 'MASCULINO',
     nascimento: '1955-06-25',
     diagnostico: 'Câncer de próstata (fictício)',
     protocolo: 'Pembrolizumabe (demonstração)',
-    respostas: [{ sintoma: 'DOR', sentiuDor: true, intensidade: 2, local: 'ABDOME' }],
+    respostas: [{ sintoma: 'DOR', respostas: [ { campo: 'apresentouDor', valorBooleano: true }, { campo: 'localizacao', valorTexto: 'ABDOME' }, { campo: 'intensidade', valorNumerico: 2 } ] }],
     social: { moraSozinho: false, dificuldadeDeTransporte: false, temCuidador: true },
     barreiras: [],
   },
   {
-    cpf: '19238452047',
+    cpf: '77700033340',
     nome: 'Sônia Vasques (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1978-12-01',
     diagnostico: 'Câncer de ovário (fictício)',
     protocolo: 'AC-T (demonstração)',
-    respostas: [{ sintoma: 'FEBRE', apresentouFebre: false }],
+    respostas: [{ sintoma: 'FEBRE', respostas: [ { campo: 'apresentouFebre', valorBooleano: false } ] }],
     social: { moraSozinho: false, dificuldadeDeTransporte: false, temCuidador: true },
     barreiras: [],
   },
   {
-    cpf: '63913862005',
+    cpf: '88811144450',
     nome: 'Wanderley Sales (fictício)',
     sexo: 'MASCULINO',
     nascimento: '1962-03-14',
     diagnostico: 'Câncer gástrico (fictício)',
     protocolo: 'FOLFOX (demonstração)',
-    respostas: [{ sintoma: 'DIARREIA', teveDiarreia: true, episodiosEm24h: 3 }],
+    respostas: [{ sintoma: 'DIARREIA', respostas: [ { campo: 'apresentouDiarreia', valorBooleano: true }, { campo: 'episodiosEm24h', valorNumerico: 3 }, { campo: 'presencaDeSangue', valorBooleano: false } ] }],
     social: { moraSozinho: true, dificuldadeDeTransporte: false, temCuidador: false },
     barreiras: [{ tipo: 'FINANCEIRA' }, { tipo: 'REDE_DE_APOIO' }],
   },
   {
-    cpf: '24184566040',
+    cpf: '99922255561',
     nome: 'Neusa Correia (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1946-08-19',
     diagnostico: 'Câncer de mama (fictício)',
     protocolo: 'AC-T (demonstração)',
-    respostas: [{ sintoma: 'DOR', sentiuDor: false }],
+    respostas: [{ sintoma: 'DOR', respostas: [ { campo: 'apresentouDor', valorBooleano: false } ] }],
     social: { moraSozinho: true, dificuldadeDeTransporte: true, temCuidador: false },
     barreiras: [{ tipo: 'TRANSPORTE' }],
   },
   {
-    cpf: '84931920063',
+    cpf: '12345678062',
     nome: 'Gilmar Peçanha (fictício)',
     sexo: 'MASCULINO',
     nascimento: '1974-05-09',
     diagnostico: 'Câncer colorretal (fictício)',
     protocolo: 'FOLFOX (demonstração)',
-    respostas: [{ sintoma: 'DIARREIA', teveDiarreia: true, episodiosEm24h: 4 }],
+    respostas: [{ sintoma: 'DIARREIA', respostas: [ { campo: 'apresentouDiarreia', valorBooleano: true }, { campo: 'episodiosEm24h', valorNumerico: 4 }, { campo: 'presencaDeSangue', valorBooleano: false } ] }],
     social: { moraSozinho: false, dificuldadeDeTransporte: false, temCuidador: true },
     barreiras: [],
   },
   {
-    cpf: '40483558007',
+    cpf: '23456789173',
     nome: 'Lúcia Amorim (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1987-10-27',
     diagnostico: 'Câncer de colo do útero (fictício)',
     protocolo: 'Pembrolizumabe (demonstração)',
-    respostas: [{ sintoma: 'FEBRE', apresentouFebre: false }],
+    respostas: [{ sintoma: 'FEBRE', respostas: [ { campo: 'apresentouFebre', valorBooleano: false } ] }],
     social: { moraSozinho: false, dificuldadeDeTransporte: false, temCuidador: true },
     barreiras: [],
   },
   {
-    cpf: '46011180060',
+    cpf: '34567890256',
     nome: 'Denise Fontes (fictícia)',
     sexo: 'FEMININO',
     nascimento: '1990-02-08',
@@ -225,6 +255,32 @@ const PROTOCOLOS = [
   { nome: 'AC-T (demonstração)', preparo: 20, pre: 30, infusao: 90, obs: 30, neutropenia: true, bomba: false },
   { nome: 'Pembrolizumabe (demonstração)', preparo: 20, pre: 0, infusao: 30, obs: 60, neutropenia: false, bomba: false },
 ] as const;
+
+/**
+ * Chave de idempotência do check-in, no formato que a rota exige (UUID v4).
+ *
+ * Derivada do CPF e do dia, e não sorteada: sorteio criaria um check-in novo a cada
+ * execução, que é exatamente o que a chave existe para impedir. Os bits de versão e
+ * variante são fixados à mão porque o valor precisa ser um UUID VÁLIDO, não só ter o
+ * formato — o schema da rota valida o padrão inteiro.
+ */
+function chaveDoDia(cpf: string): string {
+  const semente = `${cpf}${new Date().toISOString().slice(0, 10)}`;
+  let hash = 0;
+  const digitos: string[] = [];
+  for (let i = 0; i < 32; i += 1) {
+    hash = (hash * 31 + semente.charCodeAt(i % semente.length) + i) % 0xffff;
+    digitos.push((hash % 16).toString(16));
+  }
+  const h = digitos.join('');
+  return [
+    h.slice(0, 8),
+    h.slice(8, 12),
+    `4${h.slice(13, 16)}`,
+    `a${h.slice(17, 20)}`,
+    h.slice(20, 32),
+  ].join('-');
+}
 
 function diasAtras(dias: number): string {
   const d = new Date();
@@ -268,12 +324,24 @@ async function publicar() {
   console.log(`  protocolos: ${idDoProtocolo.size}`);
 
   // -------------------------------------------------------------- pacientes
-  const pacientesExistentes = await chamar<{ itens: { id: string; nome: string; cpf?: string }[] }>(
-    '/admin/pacientes?limite=200',
-    { token: admin },
-  );
+  /* A listagem PAGINA. Ler só a primeira página faria o publicador não reconhecer
+     quem já existe a partir do vigésimo paciente e tentar recriar todo mundo — que é
+     exatamente o erro que a idempotência existe para evitar. O parâmetro é `tamanho`,
+     e `limite` faz a rota responder erro de cursor. */
   const porNome = new Map<string, string>();
-  for (const p of pacientesExistentes.corpo?.itens ?? []) porNome.set(p.nome, p.id);
+  let cursor: string | null = null;
+
+  do {
+    const pagina: Resposta<{
+      itens?: { id: string; nome: string }[];
+      proximoCursor?: string | null;
+    }> = await chamar('/admin/pacientes?tamanho=100' + (cursor ? `&cursor=${cursor}` : ''), {
+      token: admin,
+    });
+
+    for (const p of pagina.corpo?.itens ?? []) porNome.set(p.nome, p.id);
+    cursor = pagina.corpo?.proximoCursor ?? null;
+  } while (cursor);
 
   let criados = 0;
   const idPorCpf = new Map<string, string>();
@@ -348,7 +416,7 @@ async function publicar() {
     const sessao = await chamar<{ sessaoId?: string; id?: string }>('/triagem/sessoes', {
       metodo: 'POST',
       token,
-      corpo: { chaveDeIdempotencia: `demo-api-${perfil.cpf}-${diasAtras(0).slice(0, 10)}` },
+      corpo: { chaveDeIdempotencia: chaveDoDia(perfil.cpf) },
     });
 
     const sessaoId = sessao.corpo?.sessaoId ?? sessao.corpo?.id;
