@@ -128,7 +128,11 @@ export function ProvedorDeSessao({ children }: { children: React.ReactNode }) {
         const eu = await chamar<RespostaDeQuemSou>('/autenticacao/eu');
         if (cancelado) return;
         setUsuario({
-          nome: eu.perfilDetalhado?.nome ?? guardado.nome,
+          /* O guardado e palpite para nao piscar a tela; quem confirma e a API,
+             como diz o comentario da restauracao. Cair no palpite quando a API
+             respondeu "sem nome" invertia isso: o nome fabricado por uma sessao
+             antiga sobrevivia no sessionStorage e voltava a aparecer no rodape. */
+          nome: eu.perfilDetalhado?.nome ?? null,
           perfil: eu.perfil,
           permissoes: eu.permissoes,
         });
