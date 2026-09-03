@@ -8,13 +8,36 @@
  */
 
 import type {
+  AtividadeFisica,
   Classificacao,
+  FaixaDeSilencio,
+  IndicadoresDeToxicidade,
+  MotivoDaPrioridade,
+  NivelDePrioridade,
+  ResultadoDaEstratificacao,
+  ResumoDoSilencio,
   ConjuntoDeLimiares,
+  ConsumoDeAlcool,
   RegraDisparada,
   Sintoma,
+  Tabagismo,
 } from '@aurea/contratos';
 
-export type { Classificacao, ConjuntoDeLimiares, RegraDisparada, Sintoma };
+export type {
+  AtividadeFisica,
+  Classificacao,
+  FaixaDeSilencio,
+  IndicadoresDeToxicidade,
+  MotivoDaPrioridade,
+  NivelDePrioridade,
+  ResultadoDaEstratificacao,
+  ResumoDoSilencio,
+  ConjuntoDeLimiares,
+  ConsumoDeAlcool,
+  RegraDisparada,
+  Sintoma,
+  Tabagismo,
+};
 
 /* ==========================================================================
    Sessão
@@ -265,6 +288,13 @@ export interface CartaoDoPainel {
   readonly nuncaRespondeu: boolean;
   readonly ultimaSessaoId: string | null;
   readonly diaDoCiclo: number | null;
+  /* Vêm prontos da API, calculados por `ordenarFilaDePrioridades`. Opcionais porque o
+     espelho sintético e a API antiga não os mandam. */
+  readonly faixaDeSilencio?: FaixaDeSilencio;
+  readonly nivelDePrioridade?: NivelDePrioridade;
+  readonly motivos?: readonly MotivoDaPrioridade[];
+  /** Blocos 2 e 8. Opcional: espelho e API antiga não mandam. */
+  readonly risco?: ResultadoDaEstratificacao;
 }
 
 export interface ResumoDoPainel {
@@ -278,6 +308,8 @@ export interface ResumoDoPainel {
 export interface PacientesDoDia {
   readonly cards: readonly CartaoDoPainel[];
   readonly resumo: ResumoDoPainel;
+  /** Bloco 3 dos prints: quantos estão em cada faixa de silêncio. */
+  readonly silencio?: ResumoDoSilencio;
 }
 
 export interface RespostaRegistrada {
@@ -349,6 +381,13 @@ export interface PrescricaoDoPaciente {
   readonly emVigor: boolean;
 }
 
+/** Alergia e comorbidade têm a mesma forma na API: descrição + trilha de confirmação. */
+export interface CondicaoDoPaciente {
+  readonly descricao: string;
+  readonly origem?: 'EQUIPE' | 'PACIENTE';
+  readonly confirmadaEm?: string | null;
+}
+
 export interface HistoricoDoPaciente {
   readonly paciente: {
     readonly id: string;
@@ -358,9 +397,44 @@ export interface HistoricoDoPaciente {
     readonly diaDoCiclo: number | null;
     readonly numeroDoCiclo?: number | null;
     readonly dataNascimento?: string | null;
-    readonly sexo?: 'FEMININO' | 'MASCULINO' | 'NAO_INFORMADO';
+    readonly sexo?: 'FEMININO' | 'MASCULINO' | 'OUTRO' | 'NAO_INFORMADO';
     readonly convenio?: string | null;
     readonly medicoAssistente?: string | null;
+    readonly habitoIntestinalBasal?: number | null;
+    /* História de vida. Alimenta a breve história no topo do prontuário. Opcionais
+       porque o espelho sintético e prontuários antigos não têm os campos. */
+    readonly tabagismo?: Tabagismo | null;
+    readonly parouDeFumarEm?: string | null;
+    readonly atividadeFisica?: AtividadeFisica | null;
+    readonly descricaoDaAtividade?: string | null;
+    readonly consumoDeAlcool?: ConsumoDeAlcool | null;
+    readonly alergias?: readonly CondicaoDoPaciente[];
+    readonly comorbidades?: readonly CondicaoDoPaciente[];
+    /* Contexto operacional, editável na tela de registro. */
+    readonly ecog?: string | null;
+    readonly moraSozinho?: boolean;
+    readonly dificuldadeDeTransporte?: boolean;
+    readonly temCuidador?: boolean;
+    readonly contextoSocialAvaliadoEm?: string | null;
+    readonly barreiras?: readonly {
+      readonly id: string;
+      readonly tipo: string;
+      readonly descricao: string | null;
+      readonly criadaEm: string;
+    }[];
+    readonly pendencias?: readonly {
+      readonly id: string;
+      readonly tipo: string;
+      readonly descricao: string | null;
+      readonly referenteA: string;
+    }[];
+    readonly internacoes?: readonly {
+      readonly id: string;
+      readonly motivo: string;
+      readonly local: string | null;
+      readonly iniciadaEm: string;
+      readonly altaEm: string | null;
+    }[];
     readonly contatos?: readonly {
       readonly nome: string;
       readonly telefone: string;
@@ -381,7 +455,33 @@ export interface HistoricoDoPaciente {
  * só aceita estes dois — e a tela precisa oferecer exatamente o que a API grava,
  * senão o profissional escolhe uma opção que o servidor recusa.
  */
-export type SituacaoDoSintoma = 'RESOLVIDO' | 'EM_ACOMPANHAMENTO';
+export type SituacaoDoSintoma =
+  | 'RESOLVIDO'
+  | 'EM_ACOMPANHAMENTO'
+  | 'AGUARDANDO_RETORNO'
+  | 'ENCAMINHADO_AO_PA'
+  | 'REAVALIAR';
+
+/** Uma linha do bloco 7 dos prints: paciente, motivo, situação. */
+export interface IntervencaoEmAcompanhamento {
+  readonly id: string;
+  readonly pacienteId: string;
+  readonly paciente: string;
+  readonly sessaoId: string;
+  readonly motivo: Sintoma | null;
+  readonly justificativa: string | null;
+  readonly classificacao: Classificacao | null;
+  readonly situacao: SituacaoDoSintoma;
+  readonly conduta: string;
+  readonly profissional: string;
+  readonly contatoRealizadoEm: string;
+  readonly registradaEm: string;
+}
+
+export interface AcompanhamentoDeIntervencoes {
+  readonly itens: readonly IntervencaoEmAcompanhamento[];
+  readonly resumo: { readonly abertas: number; readonly total: number };
+}
 
 export interface Intervencao {
   readonly id: string;
@@ -503,4 +603,40 @@ export interface RegistroDeAcesso {
 export interface Pagina<T> {
   readonly itens: readonly T[];
   readonly proximoCursor: string | null;
+}
+
+
+/* ==========================================================================
+   Navegação — blocos 6, 9, 10 e 11 dos prints
+   ========================================================================== */
+
+export interface AlertaPreTratamento {
+  readonly id: string;
+  readonly pacienteId: string;
+  readonly paciente: string;
+  readonly tipo: string;
+  readonly descricao: string | null;
+  readonly referenteA: string;
+}
+
+export interface PainelDeNavegacao {
+  readonly indicadores: {
+    readonly pacientesAcompanhados: number;
+    readonly intervencoesRealizadas: number;
+    /** Nulo quando nenhuma intervenção tinha as duas datas — média sem base é mentira. */
+    readonly tempoMedioDeRespostaEmMinutos: number | null;
+    readonly encaminhamentos: number;
+    readonly internacoesNotificadas: number;
+    readonly tratamentosSuspensos: number;
+    readonly pacientesSemRedeDeApoio: number;
+    readonly pacientesComDificuldadeDeAcesso: number;
+  };
+  readonly barreiras: readonly { readonly tipo: string; readonly quantidade: number }[];
+  readonly alertasPreTratamento: readonly AlertaPreTratamento[];
+  readonly mural: {
+    readonly pacientesInternados: number;
+    readonly tratamentosSuspensos: number;
+    readonly pendenciasParaAmanha: number;
+    readonly barreirasAbertas: number;
+  };
 }

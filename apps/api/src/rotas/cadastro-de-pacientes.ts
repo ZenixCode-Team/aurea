@@ -1,7 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { hash } from 'bcryptjs';
-import { Prisma, Sexo, TipoDeContato } from '@prisma/client';
+import {
+  AtividadeFisica,
+  ConsumoDeAlcool,
+  Prisma,
+  Sexo,
+  Tabagismo,
+  TipoDeContato,
+} from '@prisma/client';
 import { cpfEhValido, normalizarCpf } from '@aurea/contratos';
 import { prisma } from '../prisma.js';
 import { conflito, naoEncontrado, requisicaoInvalida } from '../erros.js';
@@ -31,6 +38,11 @@ const idDoContatoNaUrlSchema = z.object({
   contatoId: z.string().uuid(),
 });
 
+const idDaComorbidadeNaUrlSchema = z.object({
+  id: z.string().uuid(),
+  comorbidadeId: z.string().uuid(),
+});
+
 const idDaAlergiaNaUrlSchema = z.object({
   id: z.string().uuid(),
   alergiaId: z.string().uuid(),
@@ -41,6 +53,34 @@ const cpfSchema = z
   .transform(normalizarCpf)
   .refine(cpfEhValido, 'CPF inválido.');
 
+/**
+ * História de vida. Os três enums são opcionais e caem em `NAO_INFORMADO` no banco,
+ * porque cadastro de paciente entra às pressas e obrigar a resposta produziria o pior
+ * resultado possível: alguém escolhendo "nunca fumou" para o formulário deixar salvar.
+ */
+const historiaDeVidaSchema = {
+  tabagismo: z.enum(Tabagismo).optional(),
+  parouDeFumarEm: z.coerce.date().optional(),
+  atividadeFisica: z.enum(AtividadeFisica).optional(),
+  descricaoDaAtividade: z.string().trim().min(1).max(200).optional(),
+  consumoDeAlcool: z.enum(ConsumoDeAlcool).optional(),
+};
+
+/** Data de parada só faz sentido para quem parou. */
+function pararDeFumarEhCoerente(dados: {
+  tabagismo?: string;
+  parouDeFumarEm?: Date | null;
+}): boolean {
+  if (dados.parouDeFumarEm == null) return true;
+  /* Tabagismo ausente no update quer dizer "não estou mexendo nisso", e o valor que
+     vale é o do banco. Só o valor EXPLÍCITO e incompatível é recusado. */
+  if (dados.tabagismo === undefined) return true;
+  return dados.tabagismo === 'EX_FUMANTE';
+}
+
+const MENSAGEM_DE_PARADA =
+  'Data de parada do fumo só se aplica a quem está como ex-fumante.';
+
 const criarPacienteSchema = z.object({
   nome: z.string().trim().min(2).max(180),
   cpf: cpfSchema,
@@ -50,6 +90,7 @@ const criarPacienteSchema = z.object({
   convenio: z.string().trim().min(1).max(120).optional(),
   tipoSanguineo: z.string().trim().min(1).max(5).optional(),
   habitoIntestinalBasal: z.number().int().min(0).max(20).optional(),
+  ...historiaDeVidaSchema,
   // Mesmo piso de `trocarSenhaSchema` em `conta.ts`: é a senha com que o paciente vai
   // entrar até trocar no primeiro acesso, e não faz sentido nascer mais fraca que a
   // política que rege toda troca posterior.
@@ -57,7 +98,7 @@ const criarPacienteSchema = z.object({
     .string()
     .min(10, 'A senha provisória precisa de pelo menos 10 caracteres.')
     .max(200),
-});
+}).refine(pararDeFumarEhCoerente, { message: MENSAGEM_DE_PARADA });
 
 const atualizarPacienteSchema = z
   .object({
@@ -68,10 +109,23 @@ const atualizarPacienteSchema = z
     convenio: z.string().trim().min(1).max(120).nullable().optional(),
     tipoSanguineo: z.string().trim().min(1).max(5).nullable().optional(),
     habitoIntestinalBasal: z.number().int().min(0).max(20).nullable().optional(),
+    tabagismo: z.enum(Tabagismo).optional(),
+    parouDeFumarEm: z.coerce.date().nullable().optional(),
+    atividadeFisica: z.enum(AtividadeFisica).optional(),
+    descricaoDaAtividade: z.string().trim().min(1).max(200).nullable().optional(),
+    consumoDeAlcool: z.enum(ConsumoDeAlcool).optional(),
   })
   .refine((dados) => Object.keys(dados).length > 0, {
     message: 'Envie ao menos um campo para atualizar.',
-  });
+  })
+  /* No update `parouDeFumarEm` pode vir nulo (limpando o campo), e `tabagismo` pode
+     não vir junto — quem já é ex-fumante no banco edita só a data. Por isso a checagem
+     só barra o caso inequívoco: mandar data junto com um tabagismo que não é
+     ex-fumante. */
+  .refine(
+    (dados) => dados.parouDeFumarEm == null || pararDeFumarEhCoerente(dados),
+    { message: MENSAGEM_DE_PARADA },
+  );
 
 const criarContatoSchema = z.object({
   nome: z.string().trim().min(2).max(180),
@@ -83,6 +137,10 @@ const criarContatoSchema = z.object({
 const criarAlergiaSchema = z.object({
   substancia: z.string().trim().min(2).max(200),
   reacao: z.string().trim().min(1).max(255).optional(),
+});
+
+const criarComorbidadeSchema = z.object({
+  descricao: z.string().trim().min(2).max(255),
 });
 
 export async function rotasDeCadastroDePacientes(app: FastifyInstance) {
@@ -182,6 +240,15 @@ export async function rotasDeCadastroDePacientes(app: FastifyInstance) {
           select: { id: true, descricao: true, origem: true, confirmadaEm: true, criadaEm: true },
           orderBy: { criadaEm: 'desc' },
         },
+        comorbidades: {
+          select: { id: true, descricao: true, origem: true, confirmadaEm: true, criadaEm: true },
+          orderBy: { criadaEm: 'desc' },
+        },
+        tabagismo: true,
+        parouDeFumarEm: true,
+        atividadeFisica: true,
+        descricaoDaAtividade: true,
+        consumoDeAlcool: true,
         tratamentos: {
           where: { encerradoEm: null },
           take: 1,
@@ -222,6 +289,15 @@ export async function rotasDeCadastroDePacientes(app: FastifyInstance) {
         ...alergia,
         confirmada: alergia.confirmadaEm !== null,
       })),
+      comorbidades: paciente.comorbidades.map((comorbidade) => ({
+        ...comorbidade,
+        confirmada: comorbidade.confirmadaEm !== null,
+      })),
+      tabagismo: paciente.tabagismo,
+      parouDeFumarEm: paciente.parouDeFumarEm,
+      atividadeFisica: paciente.atividadeFisica,
+      descricaoDaAtividade: paciente.descricaoDaAtividade,
+      consumoDeAlcool: paciente.consumoDeAlcool,
       tratamento: tratamento
         ? { protocolo: tratamento.protocolo, iniciadoEm: tratamento.iniciadoEm }
         : null,
@@ -434,6 +510,64 @@ export async function rotasDeCadastroDePacientes(app: FastifyInstance) {
 
     return resposta.status(201).send({ ...alergia, confirmada: alergia.confirmadaEm !== null });
   });
+
+  /**
+   * Comorbidade. Espelha alergia inclusive no que NÃO faz: nasce com `origem: 'EQUIPE'`
+   * e sem confirmação clínica, porque quem tem `GERENCIAR_CADASTROS` não é
+   * necessariamente quem pode assinar uma condição associada.
+   */
+  app.post('/admin/pacientes/:id/comorbidades', comCadastro, async (requisicao, resposta) => {
+    const usuarioLogado = usuarioDa(requisicao);
+    const { id } = idNaUrlSchema.parse(requisicao.params);
+
+    const analise = criarComorbidadeSchema.safeParse(requisicao.body);
+    if (!analise.success) {
+      throw requisicaoInvalida('Dados da comorbidade inválidos.', analise.error.issues);
+    }
+
+    const paciente = await prisma.paciente.findUnique({ where: { id }, select: { id: true } });
+    if (!paciente) throw naoEncontrado('Paciente não encontrado.');
+
+    const comorbidade = await prisma.comorbidadeDoPaciente.create({
+      data: { pacienteId: id, descricao: analise.data.descricao, origem: 'EQUIPE' },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'EDICAO_DE_CADASTRO',
+      usuarioId: usuarioLogado.id,
+      pacienteId: id,
+    });
+
+    return resposta
+      .status(201)
+      .send({ ...comorbidade, confirmada: comorbidade.confirmadaEm !== null });
+  });
+
+  /** Só apaga comorbidade deste paciente, pelo mesmo motivo do contato e da alergia. */
+  app.delete(
+    '/admin/pacientes/:id/comorbidades/:comorbidadeId',
+    comCadastro,
+    async (requisicao) => {
+      const usuarioLogado = usuarioDa(requisicao);
+      const { id, comorbidadeId } = idDaComorbidadeNaUrlSchema.parse(requisicao.params);
+
+      const comorbidade = await prisma.comorbidadeDoPaciente.findFirst({
+        where: { id: comorbidadeId, pacienteId: id },
+        select: { id: true },
+      });
+      if (!comorbidade) throw naoEncontrado('Comorbidade não encontrada.');
+
+      await prisma.comorbidadeDoPaciente.delete({ where: { id: comorbidadeId } });
+
+      await registrarAcesso(requisicao, {
+        acao: 'EDICAO_DE_CADASTRO',
+        usuarioId: usuarioLogado.id,
+        pacienteId: id,
+      });
+
+      return { id: comorbidadeId, removido: true };
+    },
+  );
 
   /** Só apaga alergia que pertence a este paciente, pelo mesmo motivo do contato acima. */
   app.delete('/admin/pacientes/:id/alergias/:alergiaId', comCadastro, async (requisicao) => {

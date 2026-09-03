@@ -11,6 +11,9 @@
  */
 
 import type {
+  AcompanhamentoDeIntervencoes,
+  PainelDeNavegacao,
+  IndicadoresDeToxicidade,
   CartaoDoPainel,
   ConjuntoResumido,
   DiaDoHistorico,
@@ -342,6 +345,26 @@ export const HISTORICOS_SINTETICOS: Record<string, HistoricoDoPaciente> = {
       diagnostico: 'Diagnóstico sintético de demonstração',
       protocolo: 'Protocolo de demonstração',
       diaDoCiclo: 7,
+      numeroDoCiclo: 2,
+      /* História de vida do espelho. Preenchida por inteiro num paciente só, de
+         propósito: é o que deixa ver a breve história completa E a barra de cadastro
+         incompleto nos outros dois, sem precisar de banco. Nenhum valor aqui é
+         plausível a ponto de passar por dado real — é a mesma regra da posologia. */
+      sexo: 'MASCULINO',
+      dataNascimento: '1963-05-22T00:00:00.000Z',
+      habitoIntestinalBasal: 1,
+      tabagismo: 'EX_FUMANTE',
+      parouDeFumarEm: '2019-08-01T00:00:00.000Z',
+      atividadeFisica: 'LEVE',
+      descricaoDaAtividade: 'caminha três vezes por semana',
+      consumoDeAlcool: 'NAO_BEBE',
+      alergias: [
+        { descricao: 'dipirona (fictícia)', confirmadaEm: '2026-07-02T00:00:00.000Z' },
+        { descricao: 'penicilina (fictícia)', origem: 'PACIENTE', confirmadaEm: null },
+      ],
+      comorbidades: [
+        { descricao: 'hipertensão (fictícia)', confirmadaEm: '2026-07-02T00:00:00.000Z' },
+      ],
     },
     sessoes: [
       {
@@ -534,3 +557,128 @@ export const REGISTRO_DE_ACESSOS_SINTETICO: readonly RegistroDeAcesso[] = [
   { id: 'la-3', aconteceuEm: em('2026-07-28', '17:20'), usuario: 'Orientador de demonstração', acao: 'EDICAO_DE_ALGORITMO', recurso: 'rascunho-1', enderecoDeOrigem: '10.0.0.31' },
   { id: 'la-4', aconteceuEm: em('2026-06-15', '11:05'), usuario: 'Orientador de demonstração', acao: 'PUBLICACAO_DE_ALGORITMO', recurso: 'rascunho-0', enderecoDeOrigem: '10.0.0.31' },
 ];
+
+/**
+ * Bloco 7 dos prints, no espelho. Os três desfechos aparecem porque a tabela precisa
+ * mostrar que "aguardando retorno", "encaminhado ao PA" e "reavaliar" são estados
+ * diferentes, e não sinônimos elegantes de "em aberto".
+ */
+export const INTERVENCOES_SINTETICAS: AcompanhamentoDeIntervencoes = {
+  itens: [
+    {
+      id: 'i-1',
+      pacienteId: 'p-4',
+      paciente: 'Antônio Reis (fictício)',
+      sessaoId: 's-10',
+      motivo: 'FEBRE',
+      justificativa: 'Temperatura acima do limiar do protocolo.',
+      classificacao: 'VERMELHO',
+      situacao: 'ENCAMINHADO_AO_PA',
+      conduta:
+        'Contato telefônico. Orientado a procurar o pronto atendimento do serviço hoje.',
+      profissional: 'Enfermeira de demonstração',
+      contatoRealizadoEm: HOJE,
+      registradaEm: HOJE,
+    },
+    {
+      id: 'i-2',
+      pacienteId: 'p-1',
+      paciente: 'Helena Duarte (fictícia)',
+      sessaoId: 's-4',
+      motivo: 'DIARREIA',
+      justificativa: 'De 3 a 5 evacuações soltas em 24 horas.',
+      classificacao: 'AMARELO',
+      situacao: 'AGUARDANDO_RETORNO',
+      conduta: 'Orientada hidratação e registro dos episódios. Retorno combinado à tarde.',
+      profissional: 'Enfermeira de demonstração',
+      contatoRealizadoEm: HOJE,
+      registradaEm: HOJE,
+    },
+    {
+      id: 'i-3',
+      pacienteId: 'p-2',
+      paciente: 'Rita Camargo (fictícia)',
+      sessaoId: 's-6',
+      motivo: 'DOR',
+      justificativa: 'Dor de 4 a 7 na escala.',
+      classificacao: 'AMARELO',
+      situacao: 'REAVALIAR',
+      conduta: 'Analgesia conforme prescrição. Reavaliar amanhã no check-in.',
+      profissional: 'Enfermeira de demonstração',
+      contatoRealizadoEm: HOJE,
+      registradaEm: HOJE,
+    },
+  ],
+  resumo: { abertas: 3, total: 3 },
+};
+
+/**
+ * Bloco 5 no espelho. Os números batem entre si de propósito: 12 sessões, e cada taxa
+ * é a divisão real das ocorrências por elas. Espelho com percentual inventado é o
+ * caminho mais curto para alguém apresentar um gráfico que não fecha.
+ */
+export const INDICADORES_DE_TOXICIDADE_SINTETICOS: IndicadoresDeToxicidade = {
+  diasConsiderados: 30,
+  totalDeSessoes: 12,
+  amostraSuficiente: true,
+  taxas: [
+    { sintoma: 'NAUSEA_VOMITO', ocorrencias: 6, totalDeSessoes: 12, percentual: 50 },
+    { sintoma: 'DOR', ocorrencias: 4, totalDeSessoes: 12, percentual: 33 },
+    { sintoma: 'DIARREIA', ocorrencias: 3, totalDeSessoes: 12, percentual: 25 },
+    { sintoma: 'FEBRE', ocorrencias: 1, totalDeSessoes: 12, percentual: 8 },
+  ],
+  porProtocolo: [
+    {
+      protocolo: 'Protocolo de demonstração',
+      totalDeSessoes: 12,
+      sintomaMaisFrequente: 'NAUSEA_VOMITO',
+      ocorrenciasDoMaisFrequente: 6,
+      amostraSuficiente: true,
+    },
+  ],
+};
+
+/** Blocos 6, 9, 10 e 11 no espelho. Números coerentes entre si: o mural repete o que
+    as listas mostram, e não valores soltos que não fecham numa apresentação. */
+export const NAVEGACAO_SINTETICA: PainelDeNavegacao = {
+  indicadores: {
+    pacientesAcompanhados: 8,
+    intervencoesRealizadas: 14,
+    tempoMedioDeRespostaEmMinutos: 47,
+    encaminhamentos: 2,
+    internacoesNotificadas: 1,
+    tratamentosSuspensos: 1,
+    pacientesSemRedeDeApoio: 2,
+    pacientesComDificuldadeDeAcesso: 3,
+  },
+  barreiras: [
+    { tipo: 'TRANSPORTE', quantidade: 3 },
+    { tipo: 'ANSIEDADE', quantidade: 2 },
+    { tipo: 'AUTORIZACAO', quantidade: 2 },
+    { tipo: 'FINANCEIRA', quantidade: 1 },
+  ],
+  alertasPreTratamento: [
+    {
+      id: 'a-1',
+      pacienteId: 'p-1',
+      paciente: 'Helena Duarte (fictícia)',
+      tipo: 'EXAME',
+      descricao: 'Hemograma da véspera não coletado',
+      referenteA: HOJE,
+    },
+    {
+      id: 'a-2',
+      pacienteId: 'p-2',
+      paciente: 'Rita Camargo (fictícia)',
+      tipo: 'AUTORIZACAO',
+      descricao: null,
+      referenteA: HOJE,
+    },
+  ],
+  mural: {
+    pacientesInternados: 1,
+    tratamentosSuspensos: 1,
+    pendenciasParaAmanha: 2,
+    barreirasAbertas: 8,
+  },
+};

@@ -32,6 +32,9 @@ import {
   REGISTRO_DE_ACESSOS_SINTETICO,
   REGRAS_SINTETICAS,
   SOLICITACOES_DO_PACIENTE_SINTETICAS,
+  INDICADORES_DE_TOXICIDADE_SINTETICOS,
+  NAVEGACAO_SINTETICA,
+  INTERVENCOES_SINTETICAS,
 } from './sinteticos';
 import type {
   CartaoDoPainel,
@@ -60,6 +63,9 @@ import type {
   SituacaoDoSintoma,
   SituacaoNoPainel,
   SolicitacaoDeContato,
+  AcompanhamentoDeIntervencoes,
+  IndicadoresDeToxicidade,
+  PainelDeNavegacao,
   SolicitacaoNaFila,
   Verbete,
   VerbeteResumido,
@@ -669,6 +675,107 @@ export async function registrarIntervencao(
   await chamar<unknown>(`/painel/sessoes/${sessaoId}/intervencoes`, {
     metodo: 'POST',
     corpo: { conduta, situacao, contatoRealizadoEm: new Date().toISOString() },
+  });
+}
+
+/** Bloco 7 dos prints — o follow-up das intervenções. */
+export async function buscarAcompanhamentoDeIntervencoes(
+  incluirResolvidas = false,
+): Promise<AcompanhamentoDeIntervencoes> {
+  if (!usandoApi) return comAtraso(INTERVENCOES_SINTETICAS);
+  return chamar<AcompanhamentoDeIntervencoes>(
+    `/painel/intervencoes?incluirResolvidas=${incluirResolvidas}`,
+  );
+}
+
+/** Bloco 5 dos prints — agregado, sem dado identificável no retorno. */
+export async function buscarIndicadoresDeToxicidade(
+  dias = 30,
+): Promise<IndicadoresDeToxicidade> {
+  if (!usandoApi) return comAtraso(INDICADORES_DE_TOXICIDADE_SINTETICOS);
+  return chamar<IndicadoresDeToxicidade>(
+    `/painel/indicadores-de-toxicidade?dias=${dias}`,
+  );
+}
+
+/** Blocos 6, 9, 10 e 11 — uma chamada só, porque é uma tela só. */
+export async function buscarNavegacao(): Promise<PainelDeNavegacao> {
+  if (!usandoApi) return comAtraso(NAVEGACAO_SINTETICA);
+  return chamar<PainelDeNavegacao>('/painel/navegacao');
+}
+
+/* --------------------------------------------------------------------------
+   Registro operacional do plantão.
+
+   Todas gravam contra `/painel/*` e não `/admin/*`: quem descobre a barreira é a
+   enfermagem no telefone, e ela não tem `GERENCIAR_CADASTROS`. Em modo sintético não
+   fazem nada — o espelho é leitura, e fingir gravação daria à demonstração um
+   comportamento que a API real não tem.
+   -------------------------------------------------------------------------- */
+
+export async function registrarBarreira(
+  pacienteId: string,
+  tipo: string,
+  descricao?: string,
+): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/pacientes/${pacienteId}/barreiras`, {
+    metodo: 'POST',
+    corpo: descricao ? { tipo, descricao } : { tipo },
+  });
+}
+
+export async function resolverBarreira(barreiraId: string): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/barreiras/${barreiraId}/resolucao`, { metodo: 'POST' });
+}
+
+export async function registrarPendencia(
+  pacienteId: string,
+  tipo: string,
+  referenteA: string,
+  descricao?: string,
+): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/pacientes/${pacienteId}/pendencias`, {
+    metodo: 'POST',
+    corpo: descricao ? { tipo, referenteA, descricao } : { tipo, referenteA },
+  });
+}
+
+export async function resolverPendencia(pendenciaId: string): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/pendencias/${pendenciaId}/resolucao`, { metodo: 'POST' });
+}
+
+export async function registrarInternacao(
+  pacienteId: string,
+  dados: {
+    motivo: string;
+    local?: string;
+    iniciadaEm: string;
+    altaEm?: string;
+  },
+): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/pacientes/${pacienteId}/internacoes`, {
+    metodo: 'POST',
+    corpo: dados,
+  });
+}
+
+export async function salvarContextoSocial(
+  pacienteId: string,
+  contexto: {
+    moraSozinho: boolean;
+    dificuldadeDeTransporte: boolean;
+    temCuidador: boolean;
+  },
+): Promise<void> {
+  if (!usandoApi) return;
+  await chamar<unknown>(`/painel/pacientes/${pacienteId}/contexto-social`, {
+    metodo: 'PATCH',
+    corpo: contexto,
   });
 }
 

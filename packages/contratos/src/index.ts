@@ -3,3 +3,7 @@ export * from './sintomas.js';
 export * from './classificacao.js';
 export * from './triagem.js';
 export * from './mural.js';
+export * from './historia-do-paciente.js';
+export * from './fila-de-prioridades.js';
+export * from './indicadores-de-toxicidade.js';
+export * from './estratificacao-de-risco.js';

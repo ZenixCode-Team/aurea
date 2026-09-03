@@ -118,6 +118,43 @@ enum Sexo {
   NAO_INFORMADO
 }
 
+/// Histórico de vida do paciente. Os três enums abaixo carregam NAO_INFORMADO como
+/// padrão de propósito: em prontuário, "não perguntei" e "a pessoa negou" são coisas
+/// diferentes, e colapsar as duas em um valor só faz a equipe ler ausência de dado
+/// como resposta negativa.
+enum Tabagismo {
+  NUNCA_FUMOU
+  EX_FUMANTE
+  FUMANTE_ATUAL
+  NAO_INFORMADO
+}
+
+enum AtividadeFisica {
+  SEDENTARIO
+  LEVE
+  MODERADA
+  INTENSA
+  NAO_INFORMADO
+}
+
+enum ConsumoDeAlcool {
+  NAO_BEBE
+  SOCIAL
+  FREQUENTE
+  NAO_INFORMADO
+}
+
+/// ECOG performance status (0 a 4). Escala internacional consolidada em oncologia,
+/// aqui só armazenada — o AUREA não calcula ECOG, quem atribui é a equipe médica.
+enum ECOG {
+  ZERO
+  UM
+  DOIS
+  TRES
+  QUATRO
+  NAO_AVALIADO
+}
+
 enum FuncaoProfissional {
   MEDICO
   ENFERMEIRO
@@ -142,6 +179,8 @@ model Profissional {
   tratamentosComoEnfermeiro     Tratamento[]      @relation("EnfermeiroResponsavel")
   intervencoes                  Intervencao[]
   alergiasConfirmadas           AlergiaDoPaciente[]
+  comorbidadesConfirmadas       ComorbidadeDoPaciente[]
+  barreirasRegistradas          BarreiraDoPaciente[] @relation("BarreiraRegistrada")
   eventosDeAgenda               EventoDeAgenda[]
   prescricoesEmitidas           Prescricao[]
   contatosAtendidos             SolicitacaoDeContato[]
@@ -165,6 +204,36 @@ model Paciente {
   /// diarreia é ler número sem referência: quatro em quem evacuava uma vez não é o mesmo
   /// que em quem evacuava três. É cadastro, não resposta diária.
   habitoIntestinalBasal Int?
+  /// Tabagismo, álcool e atividade física entram aqui e não em tabela própria porque
+  /// são UM valor por pessoa, não uma lista. Comorbidade e alergia são listas, e por
+  /// isso têm tabela.
+  tabagismo         Tabagismo       @default(NAO_INFORMADO)
+  /// Data, não "anos desde que parou": número envelhece sozinho e vira mentira no ano
+  /// seguinte. A conta é feita na leitura.
+  parouDeFumarEm    DateTime?       @db.Date
+  atividadeFisica   AtividadeFisica @default(NAO_INFORMADO)
+  /// O que a pessoa faz, na palavra dela: "caminha 3x por semana", "hidroginástica".
+  /// O enum diz a intensidade; isto diz a atividade.
+  descricaoDaAtividade String?      @db.VarChar(200)
+  consumoDeAlcool   ConsumoDeAlcool @default(NAO_INFORMADO)
+  /// Data da ALTA, não da entrada: o que muda a conduta do plantão é quanto tempo faz
+  /// que a pessoa saiu. Recém-saído de internação sobe na fila de prioridades por sete
+  /// dias (`fila-de-prioridades.ts`). Nulo quer dizer "nunca internou ou ninguém
+  /// registrou" — as duas coisas, e é por isso que ausência aqui não vira sinal.
+  internadoAte      DateTime?       @db.Date
+  /// --- Estratificação de risco (blocos 2 e 8 dos prints) -------------------
+  /// Os quatro campos abaixo alimentam `estratificacao-de-risco.ts`. Todos nascem
+  /// neutros: `NAO_AVALIADO` e `false` querem dizer "ninguém preencheu", e o motor
+  /// trata ausência como ausência, nunca como negativa.
+  ecog              ECOG            @default(NAO_AVALIADO)
+  /// Contexto social. Pesam no risco porque mudam quem consegue chegar ao serviço
+  /// quando piora, não porque mudam a biologia do tratamento.
+  moraSozinho       Boolean         @default(false)
+  dificuldadeDeTransporte Boolean   @default(false)
+  temCuidador       Boolean         @default(false)
+  /// Diferencia "respondeu que não tem cuidador" de "ninguém perguntou". Sem isto,
+  /// todo paciente novo entraria pontuando por ausência de rede de apoio.
+  contextoSocialAvaliadoEm DateTime?
   medicoAssistenteId String?
   criadoEm          DateTime  @default(now())
   atualizadoEm      DateTime  @updatedAt
@@ -174,6 +243,10 @@ model Paciente {
 
   contatos              ContatoDoPaciente[]
   alergias              AlergiaDoPaciente[]
+  comorbidades          ComorbidadeDoPaciente[]
+  barreiras             BarreiraDoPaciente[]
+  pendencias            PendenciaPreTratamento[]
+  internacoes           Internacao[]
   tratamentos           Tratamento[]
   prescricoes           Prescricao[]
   sessoesDeTriagem      SessaoDeTriagem[]
@@ -238,11 +311,121 @@ model AlergiaDoPaciente {
 // Tratamento
 // ---------------------------------------------------------------------------
 
+/// Condição associada ao quadro: diabetes, hipertensão, cardiopatia. Espelha
+/// `AlergiaDoPaciente` de propósito, incluindo a trilha de confirmação: comorbidade
+/// relatada pelo paciente e comorbidade confirmada pela equipe têm pesos diferentes
+/// na leitura de um sintoma, e apagar essa diferença é perder informação clínica.
+model ComorbidadeDoPaciente {
+  id             String             @id @default(uuid())
+  pacienteId     String
+  descricao      String             @db.VarChar(255)
+  origem         OrigemDaInformacao @default(EQUIPE)
+  confirmadaPorId String?
+  confirmadaEm   DateTime?
+  criadaEm       DateTime           @default(now())
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  confirmadaPor Profissional? @relation(fields: [confirmadaPorId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, confirmadaEm])
+  @@map("comorbidades_do_paciente")
+}
+
+/// --- Onda E: operação e navegação (blocos 6, 9, 10 e 11 dos prints) ----------
+
+/// Barreira de acesso ao tratamento. Vocabulário fechado de propósito: barreira em
+/// texto livre não agrega, e o mapa do bloco 10 existe justamente para contar quantos
+/// pacientes esbarram na MESMA coisa.
+enum TipoDeBarreira {
+  TRANSPORTE
+  AUTORIZACAO
+  FINANCEIRA
+  ANSIEDADE
+  REDE_DE_APOIO
+  DISTANCIA
+  TRABALHO
+  OUTRA
+}
+
+model BarreiraDoPaciente {
+  id          String         @id @default(uuid())
+  pacienteId  String
+  tipo        TipoDeBarreira
+  descricao   String?        @db.VarChar(255)
+  /// Barreira resolvida continua no banco: o mapa de barreiras é de navegação, e
+  /// apagar o histórico esconderia o que o serviço conseguiu destravar.
+  resolvidaEm DateTime?
+  registradaPorId String?
+  criadaEm    DateTime       @default(now())
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  registradaPor Profissional? @relation("BarreiraRegistrada", fields: [registradaPorId], references: [id], onDelete: SetNull)
+
+  @@index([tipo, resolvidaEm])
+  @@index([pacienteId])
+  @@map("barreiras_do_paciente")
+}
+
+/// O que trava o tratamento de amanhã (bloco 6). Existe para evitar deslocamento
+/// inútil: paciente que vem de longe e volta sem tratar porque faltava autorização.
+enum TipoDePendencia {
+  EXAME
+  AUTORIZACAO
+  CONSULTA_MEDICA
+  TOXICIDADE_EM_ACOMPANHAMENTO
+  INTERNACAO_RECENTE
+  OUTRA
+}
+
+model PendenciaPreTratamento {
+  id          String          @id @default(uuid())
+  pacienteId  String
+  tipo        TipoDePendencia
+  descricao   String?         @db.VarChar(255)
+  /// A data do tratamento que esta pendência ameaça. É o que permite perguntar
+  /// "o que trava o dia de amanhã" sem varrer o banco inteiro.
+  referenteA  DateTime        @db.Date
+  resolvidaEm DateTime?
+  criadaEm    DateTime        @default(now())
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([referenteA, resolvidaEm])
+  @@index([pacienteId])
+  @@map("pendencias_pre_tratamento")
+}
+
+/// Internação notificada (blocos 9 e 11). Separada de `Paciente.internadoAte` porque
+/// aquele campo é o estado ATUAL e este é o registro de cada episódio: sem o histórico
+/// não há como contar quantas internações o serviço acompanhou no mês.
+model Internacao {
+  id         String    @id @default(uuid())
+  pacienteId String
+  motivo     String    @db.VarChar(255)
+  local      String?   @db.VarChar(160)
+  iniciadaEm DateTime  @db.Date
+  altaEm     DateTime? @db.Date
+  criadaEm   DateTime  @default(now())
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId, altaEm])
+  @@map("internacoes")
+}
+
 model Protocolo {
   id        String   @id @default(uuid())
   nome      String   @unique @db.VarChar(120)
   descricao String?  @db.Text
   ativo     Boolean  @default(true)
+  /// --- Atributos que pesam no risco (bloco 2 dos prints) -------------------
+  /// São característica do PROTOCOLO, não do paciente: todo mundo em imunoterapia
+  /// carrega o mesmo peso, e é isso que permite estratificar antes do primeiro
+  /// sintoma. Guardar no paciente duplicaria o dado e faria os dois divergirem.
+  imunoterapia          Boolean @default(false)
+  altoRiscoDeNeutropenia Boolean @default(false)
+  bombaInfusora         Boolean @default(false)
+  tratamentoOral        Boolean @default(false)
   criadoEm  DateTime @default(now())
 
   tratamentos Tratamento[]
@@ -260,6 +443,11 @@ model Tratamento {
   enfermeiroResponsavelId String?
   iniciadoEm             DateTime  @db.Date
   encerradoEm            DateTime? @db.Date
+  /// Suspensão é diferente de encerramento: o tratamento continua sendo do paciente,
+  /// só não está acontecendo agora. Contar suspensos como encerrados esconderia
+  /// exatamente o indicador que o bloco 9 pede.
+  suspensoEm             DateTime? @db.Date
+  motivoDaSuspensao      String?   @db.VarChar(255)
   criadoEm               DateTime  @default(now())
 
   paciente             Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
@@ -605,9 +793,19 @@ model OrientacaoEntregue {
 // Painel da enfermagem — regra 4
 // ---------------------------------------------------------------------------
 
+/// Desfecho da intervenção da enfermagem.
+///
+/// Os três valores do meio foram acrescentados porque a tela de acompanhamento precisa
+/// responder "o que aconteceu depois", e RESOLVIDO/EM_ACOMPANHAMENTO não distinguem
+/// quem foi mandado ao pronto atendimento de quem ficou esperando retorno de ligação.
+/// A diferença não é cosmética: encaminhado ao PA sai da fila do plantão, aguardando
+/// retorno continua nela.
 enum SituacaoDoSintoma {
   RESOLVIDO
   EM_ACOMPANHAMENTO
+  AGUARDANDO_RETORNO
+  ENCAMINHADO_AO_PA
+  REAVALIAR
 }
 
 /// A intervenção referencia a sessão de triagem que gerou o alerta. É essa amarração

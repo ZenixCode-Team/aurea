@@ -4,16 +4,60 @@ import { prisma } from '../prisma.js';
 import { naoEncontrado, requisicaoInvalida, semPermissao } from '../erros.js';
 import { exigirPermissao, registrarAcesso, usuarioDa } from '../autenticacao/plugin.js';
 
-import { calcularDiaDoCiclo, diasDeDiferenca, mesmoDia } from '../tempo.js';
+import {
+  estratificarRisco,
+  montarIndicadoresDeToxicidade,
+  type Classificacao,
+  type Sintoma,
+  faixaDeSilencioDe,
+  nivelDePrioridade,
+  ordenarFilaDePrioridades,
+  resumirSilencio,
+  type RegraDisparada,
+} from '@aurea/contratos';
+import {
+  calcularDiaDoCiclo,
+  colunaDeDataDoDiaCivil,
+  diasDeDiferenca,
+  mesmoDia,
+} from '../tempo.js';
 
 export type SituacaoNoPainel = 'VERMELHO' | 'AMARELO' | 'VERDE' | 'SEM_RESPOSTA_HOJE';
 
-const PESO_DA_SITUACAO: Record<SituacaoNoPainel, number> = {
-  VERMELHO: 0,
-  AMARELO: 1,
-  SEM_RESPOSTA_HOJE: 2,
-  VERDE: 3,
-};
+/**
+ * As regras que dispararam, extraídas da `explicacao` gravada com a classificação.
+ *
+ * A explicação é `Json` no banco e chega aqui sem tipo. Em vez de confiar no formato,
+ * a leitura descarta silenciosamente tudo que não tiver a forma esperada: explicação
+ * de uma versão antiga do motor não pode derrubar o painel inteiro do plantão.
+ */
+function lerRegrasDisparadas(explicacao: unknown): readonly RegraDisparada[] {
+  if (typeof explicacao !== 'object' || explicacao === null) return [];
+  const porSintoma = (explicacao as { porSintoma?: unknown }).porSintoma;
+  if (!Array.isArray(porSintoma)) return [];
+
+  const regras: RegraDisparada[] = [];
+  for (const bloco of porSintoma) {
+    if (typeof bloco !== 'object' || bloco === null) continue;
+    const disparadas = (bloco as { regrasDisparadas?: unknown }).regrasDisparadas;
+    if (!Array.isArray(disparadas)) continue;
+
+    for (const regra of disparadas) {
+      if (typeof regra !== 'object' || regra === null) continue;
+      const r = regra as Partial<RegraDisparada>;
+      if (typeof r.sintoma !== 'string' || typeof r.classificacao !== 'string') continue;
+      regras.push({
+        regraId: typeof r.regraId === 'string' ? r.regraId : '',
+        sintoma: r.sintoma as RegraDisparada['sintoma'],
+        campo: typeof r.campo === 'string' ? r.campo : '',
+        valorObservado: (r.valorObservado ?? null) as RegraDisparada['valorObservado'],
+        classificacao: r.classificacao as RegraDisparada['classificacao'],
+        justificativa: typeof r.justificativa === 'string' ? r.justificativa : '',
+      });
+    }
+  }
+  return regras;
+}
 
 export async function rotasDoPainel(app: FastifyInstance) {
   const comAcesso = {
@@ -162,11 +206,44 @@ export async function rotasDoPainel(app: FastifyInstance) {
       select: {
         id: true,
         nome: true,
+        /* Alta recente sobe o paciente na fila por sete dias — ver
+           `fila-de-prioridades.ts`. */
+        internadoAte: true,
+        /* Estratificação de risco (blocos 2 e 8). Tudo no mesmo `select` de propósito:
+           buscar por paciente em laço seria uma consulta por linha da tela. */
+        dataNascimento: true,
+        ecog: true,
+        moraSozinho: true,
+        dificuldadeDeTransporte: true,
+        temCuidador: true,
+        contextoSocialAvaliadoEm: true,
+        _count: {
+          select: {
+            comorbidades: true,
+            /* Toxicidade grave recente: classificações vermelhas nos últimos 90 dias.
+               Contagem e não lista — o peso satura em 3 e a lista seria desperdício. */
+            sessoesDeTriagem: {
+              where: {
+                estado: 'CONCLUIDA',
+                classificacoes: { some: { origem: 'ORIGINAL', resultado: 'VERMELHO' } },
+              },
+            },
+          },
+        },
         tratamentos: {
           where: { encerradoEm: null },
           take: 1,
           select: {
-            protocolo: { select: { nome: true } },
+            iniciadoEm: true,
+            protocolo: {
+              select: {
+                nome: true,
+                imunoterapia: true,
+                altoRiscoDeNeutropenia: true,
+                bombaInfusora: true,
+                tratamentoOral: true,
+              },
+            },
             ciclos: { orderBy: { sessaoRealizadaEm: 'desc' }, take: 1 },
           },
         },
@@ -181,7 +258,10 @@ export async function rotasDoPainel(app: FastifyInstance) {
             concluidaEm: true,
             classificacoes: {
               where: { origem: 'ORIGINAL' },
-              select: { resultado: true, situacao: true },
+              /* `explicacao` entra aqui para o cartão poder dizer POR QUE o paciente
+                 está no topo. Fila que ordena sem justificar é caixa-preta, e o mesmo
+                 argumento que obriga a mostrar a regra no prontuário vale aqui. */
+              select: { resultado: true, situacao: true, explicacao: true },
               take: 1,
             },
           },
@@ -205,7 +285,8 @@ export async function rotasDoPainel(app: FastifyInstance) {
         ? diasDeDiferenca(ultima.concluidaEm, agora)
         : null;
 
-      const ciclo = paciente.tratamentos[0]?.ciclos[0];
+      const tratamentoAtivo = paciente.tratamentos[0] ?? null;
+      const ciclo = tratamentoAtivo?.ciclos[0] ?? null;
 
       return {
         pacienteId: paciente.id,
@@ -220,19 +301,61 @@ export async function rotasDoPainel(app: FastifyInstance) {
         // `sessaoRealizadaEm` é coluna de data, não instante — precisa de
         // `calcularDiaDoCiclo`, não de `diasDeDiferenca`. Ver src/tempo.ts.
         diaDoCiclo: ciclo ? calcularDiaDoCiclo(ciclo.sessaoRealizadaEm, agora) : null,
+        regrasDisparadas: lerRegrasDisparadas(ultima?.classificacoes[0]?.explicacao),
+        sinalizadores: { internadoAte: paciente.internadoAte?.toISOString() ?? null },
+        /* Blocos 2 e 8 — a estratificação viaja junto com o cartão para a tela não
+           precisar de uma segunda chamada por paciente. O selo de rascunho vem no
+           próprio resultado, e não como convenção do front. */
+        risco: estratificarRisco(
+          {
+            ecog: paciente.ecog,
+            dataNascimento: paciente.dataNascimento?.toISOString() ?? null,
+            quantidadeDeComorbidades: paciente._count.comorbidades,
+            internadoAte: paciente.internadoAte?.toISOString() ?? null,
+            toxicidadesGravesRecentes: paciente._count.sessoesDeTriagem,
+            protocolo: tratamentoAtivo
+              ? {
+                  imunoterapia: tratamentoAtivo.protocolo.imunoterapia,
+                  altoRiscoDeNeutropenia:
+                    tratamentoAtivo.protocolo.altoRiscoDeNeutropenia,
+                  bombaInfusora: tratamentoAtivo.protocolo.bombaInfusora,
+                  tratamentoOral: tratamentoAtivo.protocolo.tratamentoOral,
+                }
+              : null,
+            /* Primeira aplicação: nenhum ciclo registrado ainda no tratamento ativo. */
+            primeiraAplicacao: tratamentoAtivo != null && ciclo == null,
+            moraSozinho: paciente.moraSozinho,
+            dificuldadeDeTransporte: paciente.dificuldadeDeTransporte,
+            temCuidador: paciente.temCuidador,
+            contextoSocialAvaliadoEm:
+              paciente.contextoSocialAvaliadoEm?.toISOString() ?? null,
+          },
+          agora,
+        ),
       };
     });
 
-    cards.sort((a, b) => {
-      const porGravidade = PESO_DA_SITUACAO[a.situacao] - PESO_DA_SITUACAO[b.situacao];
-      if (porGravidade !== 0) return porGravidade;
-      return (b.diasSemResponder ?? Number.MAX_SAFE_INTEGER) - (a.diasSemResponder ?? Number.MAX_SAFE_INTEGER);
-    });
+    /* A ordenação saiu daqui para `@aurea/contratos`. Não é preciosismo: o critério
+       de quem a enfermagem atende primeiro é regra de produto, precisa de teste, e
+       teste de regra que mora dentro de handler de rota exige subir servidor. */
+    const priorizados = ordenarFilaDePrioridades(cards, agora);
+    const silencio = resumirSilencio(cards);
 
     await registrarAcesso(requisicao, { acao: 'LEITURA_DE_PACIENTE', usuarioId: usuario.id });
 
     return {
-      cards,
+      /* Cada cartão carrega a posição, a faixa de silêncio e os motivos. O front não
+         recalcula nada: ordem e justificativa vêm prontas da mesma função testada. */
+      cards: priorizados.map((item) => ({
+        ...item.entrada,
+        faixaDeSilencio: item.faixaDeSilencio,
+        nivelDePrioridade: nivelDePrioridade(
+          item.entrada.situacao,
+          faixaDeSilencioDe(item.entrada.diasSemResponder, item.entrada.nuncaRespondeu),
+        ),
+        motivos: item.motivos,
+      })),
+      silencio,
       resumo: {
         total: cards.length,
         vermelhos: cards.filter((c) => c.situacao === 'VERMELHO').length,
@@ -258,8 +381,38 @@ export async function rotasDoPainel(app: FastifyInstance) {
         convenio: true,
         diagnostico: true,
         habitoIntestinalBasal: true,
+        /* História de vida. Alimenta a breve história no topo do prontuário, montada
+           por `montarHistoriaDoPaciente` em `@aurea/contratos`. */
+        tabagismo: true,
+        parouDeFumarEm: true,
+        atividadeFisica: true,
+        descricaoDaAtividade: true,
+        consumoDeAlcool: true,
         medicoAssistente: { select: { nome: true, funcao: true } },
         alergias: { select: { descricao: true, origem: true, confirmadaEm: true } },
+        comorbidades: { select: { descricao: true, origem: true, confirmadaEm: true } },
+        /* Contexto que a tela de registro edita. Vem no mesmo prontuário para a
+           edição não precisar de uma segunda chamada. */
+        ecog: true,
+        moraSozinho: true,
+        dificuldadeDeTransporte: true,
+        temCuidador: true,
+        contextoSocialAvaliadoEm: true,
+        barreiras: {
+          where: { resolvidaEm: null },
+          orderBy: { criadaEm: 'desc' },
+          select: { id: true, tipo: true, descricao: true, criadaEm: true },
+        },
+        pendencias: {
+          where: { resolvidaEm: null },
+          orderBy: { referenteA: 'asc' },
+          select: { id: true, tipo: true, descricao: true, referenteA: true },
+        },
+        internacoes: {
+          orderBy: { iniciadaEm: 'desc' },
+          take: 5,
+          select: { id: true, motivo: true, local: true, iniciadaEm: true, altaEm: true },
+        },
         contatos: { select: { tipo: true, nome: true, telefone: true, relacao: true } },
         /* Receitas em vigor primeiro, encerradas depois — a enfermagem que liga para o
            paciente precisa saber o que ele TOMA, e o que ele tomava é contexto. Quem
@@ -337,9 +490,569 @@ export async function rotasDoPainel(app: FastifyInstance) {
     };
   });
 
+  /* ---------------------------------------------------------------------------
+     Registro operacional: barreira, pendência e internação.
+
+     Ficam AQUI e não em `cadastro-de-pacientes.ts` por uma razão de permissão, não de
+     arrumação: quem descobre que o paciente não tem transporte é a enfermagem no
+     telefone, e ela não tem `GERENCIAR_CADASTROS`. Exigir o perfil administrativo
+     para registrar a barreira garantiria que a barreira nunca fosse registrada, e o
+     mapa do bloco 10 nasceria vazio para sempre.
+
+     Campos de identidade do paciente continuam do outro lado, com o perfil que os
+     protege. A separação é por natureza do dado: observação do plantão aqui, cadastro
+     lá.
+     --------------------------------------------------------------------------- */
+
+  const registroDoPlantao = {
+    preHandler: [
+      (requisicao: Parameters<typeof app.autenticar>[0]) => app.autenticar(requisicao),
+      exigirPermissao('ATENDER_PLANTAO'),
+    ],
+  };
+
+  const barreiraSchema = z.object({
+    tipo: z.enum([
+      'TRANSPORTE',
+      'AUTORIZACAO',
+      'FINANCEIRA',
+      'ANSIEDADE',
+      'REDE_DE_APOIO',
+      'DISTANCIA',
+      'TRABALHO',
+      'OUTRA',
+    ]),
+    descricao: z.string().trim().min(1).max(255).optional(),
+  });
+
+  app.post('/painel/pacientes/:id/barreiras', registroDoPlantao, async (requisicao, resposta) => {
+    const usuario = usuarioDa(requisicao);
+    const { id } = z.object({ id: z.string().uuid() }).parse(requisicao.params);
+
+    const analise = barreiraSchema.safeParse(requisicao.body);
+    if (!analise.success) {
+      throw requisicaoInvalida('Dados da barreira inválidos.', analise.error.issues);
+    }
+
+    const paciente = await prisma.paciente.findUnique({ where: { id }, select: { id: true } });
+    if (!paciente) throw naoEncontrado('Paciente não encontrado.');
+
+    const barreira = await prisma.barreiraDoPaciente.create({
+      data: {
+        pacienteId: id,
+        tipo: analise.data.tipo,
+        descricao: analise.data.descricao ?? null,
+        registradaPorId: usuario.profissionalId ?? null,
+      },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'EDICAO_DE_CADASTRO',
+      usuarioId: usuario.id,
+      pacienteId: id,
+    });
+
+    return resposta.status(201).send(barreira);
+  });
+
+  /* Resolver, não apagar: o mapa é de navegação, e apagar o histórico esconderia o
+     que o serviço conseguiu destravar. */
+  app.post(
+    '/painel/barreiras/:barreiraId/resolucao',
+    registroDoPlantao,
+    async (requisicao) => {
+      const usuario = usuarioDa(requisicao);
+      const { barreiraId } = z
+        .object({ barreiraId: z.string().uuid() })
+        .parse(requisicao.params);
+
+      const barreira = await prisma.barreiraDoPaciente.findUnique({
+        where: { id: barreiraId },
+        select: { id: true, pacienteId: true, resolvidaEm: true },
+      });
+      if (!barreira) throw naoEncontrado('Barreira não encontrada.');
+
+      const atualizada = await prisma.barreiraDoPaciente.update({
+        where: { id: barreiraId },
+        /* Idempotente: resolver duas vezes não move a data da primeira. */
+        data: { resolvidaEm: barreira.resolvidaEm ?? new Date() },
+      });
+
+      await registrarAcesso(requisicao, {
+        acao: 'EDICAO_DE_CADASTRO',
+        usuarioId: usuario.id,
+        pacienteId: barreira.pacienteId,
+      });
+
+      return atualizada;
+    },
+  );
+
+  const pendenciaSchema = z.object({
+    tipo: z.enum([
+      'EXAME',
+      'AUTORIZACAO',
+      'CONSULTA_MEDICA',
+      'TOXICIDADE_EM_ACOMPANHAMENTO',
+      'INTERNACAO_RECENTE',
+      'OUTRA',
+    ]),
+    descricao: z.string().trim().min(1).max(255).optional(),
+    referenteA: z.coerce.date(),
+  });
+
+  app.post('/painel/pacientes/:id/pendencias', registroDoPlantao, async (requisicao, resposta) => {
+    const usuario = usuarioDa(requisicao);
+    const { id } = z.object({ id: z.string().uuid() }).parse(requisicao.params);
+
+    const analise = pendenciaSchema.safeParse(requisicao.body);
+    if (!analise.success) {
+      throw requisicaoInvalida('Dados da pendência inválidos.', analise.error.issues);
+    }
+
+    const paciente = await prisma.paciente.findUnique({ where: { id }, select: { id: true } });
+    if (!paciente) throw naoEncontrado('Paciente não encontrado.');
+
+    const pendencia = await prisma.pendenciaPreTratamento.create({
+      data: {
+        pacienteId: id,
+        tipo: analise.data.tipo,
+        descricao: analise.data.descricao ?? null,
+        referenteA: analise.data.referenteA,
+      },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'EDICAO_DE_CADASTRO',
+      usuarioId: usuario.id,
+      pacienteId: id,
+    });
+
+    return resposta.status(201).send(pendencia);
+  });
+
+  app.post(
+    '/painel/pendencias/:pendenciaId/resolucao',
+    registroDoPlantao,
+    async (requisicao) => {
+      const usuario = usuarioDa(requisicao);
+      const { pendenciaId } = z
+        .object({ pendenciaId: z.string().uuid() })
+        .parse(requisicao.params);
+
+      const pendencia = await prisma.pendenciaPreTratamento.findUnique({
+        where: { id: pendenciaId },
+        select: { id: true, pacienteId: true, resolvidaEm: true },
+      });
+      if (!pendencia) throw naoEncontrado('Pendência não encontrada.');
+
+      const atualizada = await prisma.pendenciaPreTratamento.update({
+        where: { id: pendenciaId },
+        data: { resolvidaEm: pendencia.resolvidaEm ?? new Date() },
+      });
+
+      await registrarAcesso(requisicao, {
+        acao: 'EDICAO_DE_CADASTRO',
+        usuarioId: usuario.id,
+        pacienteId: pendencia.pacienteId,
+      });
+
+      return atualizada;
+    },
+  );
+
+  const internacaoSchema = z.object({
+    motivo: z.string().trim().min(2).max(255),
+    local: z.string().trim().min(1).max(160).optional(),
+    iniciadaEm: z.coerce.date(),
+    altaEm: z.coerce.date().optional(),
+  });
+
+  app.post('/painel/pacientes/:id/internacoes', registroDoPlantao, async (requisicao, resposta) => {
+    const usuario = usuarioDa(requisicao);
+    const { id } = z.object({ id: z.string().uuid() }).parse(requisicao.params);
+
+    const analise = internacaoSchema.safeParse(requisicao.body);
+    if (!analise.success) {
+      throw requisicaoInvalida('Dados da internação inválidos.', analise.error.issues);
+    }
+    if (analise.data.altaEm && analise.data.altaEm < analise.data.iniciadaEm) {
+      throw requisicaoInvalida('A alta não pode ser anterior à internação.');
+    }
+
+    const paciente = await prisma.paciente.findUnique({ where: { id }, select: { id: true } });
+    if (!paciente) throw naoEncontrado('Paciente não encontrado.');
+
+    const internacao = await prisma.internacao.create({
+      data: {
+        pacienteId: id,
+        motivo: analise.data.motivo,
+        local: analise.data.local ?? null,
+        iniciadaEm: analise.data.iniciadaEm,
+        altaEm: analise.data.altaEm ?? null,
+      },
+    });
+
+    /* `internadoAte` no paciente é o estado ATUAL e alimenta a fila de prioridades;
+       a tabela é o histórico. Escrever nos dois é o que mantém a fila correta sem
+       obrigá-la a varrer internações a cada carregamento. */
+    await prisma.paciente.update({
+      where: { id },
+      data: { internadoAte: analise.data.altaEm ?? null },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'EDICAO_DE_CADASTRO',
+      usuarioId: usuario.id,
+      pacienteId: id,
+    });
+
+    return resposta.status(201).send(internacao);
+  });
+
+  /**
+   * Contexto que alimenta a estratificação, editável por quem está no plantão.
+   *
+   * ECOG fica de FORA de propósito: é atribuição médica, não observação de plantão, e
+   * entra pelo cadastro administrativo. O que está aqui é o que a enfermagem descobre
+   * conversando: se mora sozinho, se tem quem traga, se tem cuidador.
+   */
+  const contextoSocialSchema = z.object({
+    moraSozinho: z.boolean(),
+    dificuldadeDeTransporte: z.boolean(),
+    temCuidador: z.boolean(),
+  });
+
+  app.patch('/painel/pacientes/:id/contexto-social', registroDoPlantao, async (requisicao) => {
+    const usuario = usuarioDa(requisicao);
+    const { id } = z.object({ id: z.string().uuid() }).parse(requisicao.params);
+
+    const analise = contextoSocialSchema.safeParse(requisicao.body);
+    if (!analise.success) {
+      throw requisicaoInvalida('Dados do contexto social inválidos.', analise.error.issues);
+    }
+
+    const paciente = await prisma.paciente.findUnique({ where: { id }, select: { id: true } });
+    if (!paciente) throw naoEncontrado('Paciente não encontrado.');
+
+    /* `contextoSocialAvaliadoEm` é o que separa "respondeu que não tem cuidador" de
+       "ninguém perguntou". Sem ele o motor trata os três campos como ausentes, e é
+       por isso que ele é gravado aqui e não pelo cliente. */
+    const atualizado = await prisma.paciente.update({
+      where: { id },
+      data: { ...analise.data, contextoSocialAvaliadoEm: new Date() },
+      select: {
+        moraSozinho: true,
+        dificuldadeDeTransporte: true,
+        temCuidador: true,
+        contextoSocialAvaliadoEm: true,
+      },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'EDICAO_DE_CADASTRO',
+      usuarioId: usuario.id,
+      pacienteId: id,
+    });
+
+    return atualizado;
+  });
+
+  /**
+   * Blocos 6, 9, 10 e 11 — a tela de navegação.
+   *
+   * Quatro leituras que os prints tratam como blocos separados e que respondem à
+   * mesma pergunta de gestão: onde o serviço está travando. Vêm numa rota só porque
+   * a tela é uma só, e quatro chamadas para montar uma tela é latência sem ganho.
+   *
+   * Nenhum número aqui classifica paciente. É contagem de operação, e a tela usa a
+   * paleta de dados do ADR-005.
+   */
+  app.get('/painel/navegacao', comAcesso, async (requisicao) => {
+    const usuario = usuarioDa(requisicao);
+    const agora = new Date();
+    const trintaDias = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    /* Amanhã como COLUNA DE DATA, não como instante. `referenteA` é `@db.Date`, e
+       montar a janela com aritmética de instante pergunta pelo dia errado sempre que
+       o fuso do serviço está atrás de UTC — o dia inteiro, no Brasil. Ver o comentário
+       de `colunaDeDataDoDiaCivil` em `tempo.ts`. */
+    const amanha = colunaDeDataDoDiaCivil(agora, 1);
+    const depoisDeAmanha = colunaDeDataDoDiaCivil(agora, 2);
+
+    const [
+      barreiras,
+      pendencias,
+      internacoesAbertas,
+      internacoesNoMes,
+      suspensos,
+      intervencoesNoMes,
+      encaminhados,
+      pacientesAcompanhados,
+      semRedeDeApoio,
+      comDificuldadeDeAcesso,
+    ] = await Promise.all([
+      /* Só barreiras ABERTAS no mapa: o bloco 10 pergunta onde o serviço está travado
+         agora, não o que já foi destravado. O histórico continua no banco. */
+      prisma.barreiraDoPaciente.groupBy({
+        by: ['tipo'],
+        where: { resolvidaEm: null },
+        _count: { _all: true },
+      }),
+      prisma.pendenciaPreTratamento.findMany({
+        where: {
+          resolvidaEm: null,
+          referenteA: { gte: amanha, lt: depoisDeAmanha },
+        },
+        select: {
+          id: true,
+          tipo: true,
+          descricao: true,
+          referenteA: true,
+          paciente: { select: { id: true, nome: true } },
+        },
+        orderBy: { criadaEm: 'asc' },
+      }),
+      prisma.internacao.count({ where: { altaEm: null } }),
+      prisma.internacao.count({ where: { iniciadaEm: { gte: trintaDias } } }),
+      prisma.tratamento.count({ where: { suspensoEm: { not: null }, encerradoEm: null } }),
+      prisma.intervencao.findMany({
+        where: { registradaEm: { gte: trintaDias } },
+        select: { registradaEm: true, contatoRealizadoEm: true, situacao: true },
+      }),
+      prisma.intervencao.count({
+        where: { registradaEm: { gte: trintaDias }, situacao: 'ENCAMINHADO_AO_PA' },
+      }),
+      prisma.paciente.count({ where: { tratamentos: { some: { encerradoEm: null } } } }),
+      prisma.paciente.count({
+        where: {
+          tratamentos: { some: { encerradoEm: null } },
+          contextoSocialAvaliadoEm: { not: null },
+          temCuidador: false,
+        },
+      }),
+      prisma.paciente.count({
+        where: {
+          tratamentos: { some: { encerradoEm: null } },
+          dificuldadeDeTransporte: true,
+        },
+      }),
+    ]);
+
+    /* Tempo médio entre o alerta chegar e a equipe registrar o contato. Em minutos,
+       e só sobre intervenções em que as duas datas existem: média que inclui zero
+       por dado faltante é média que mente para baixo. */
+    const duracoes = intervencoesNoMes
+      .map((i) => i.contatoRealizadoEm.getTime() - i.registradaEm.getTime())
+      .filter((ms) => Number.isFinite(ms));
+    const tempoMedioDeRespostaEmMinutos =
+      duracoes.length > 0
+        ? Math.round(
+            duracoes.reduce((total, ms) => total + Math.abs(ms), 0) /
+              duracoes.length /
+              60000,
+          )
+        : null;
+
+    await registrarAcesso(requisicao, {
+      acao: 'LEITURA_DE_PACIENTE',
+      usuarioId: usuario.id,
+    });
+
+    return {
+      indicadores: {
+        pacientesAcompanhados,
+        intervencoesRealizadas: intervencoesNoMes.length,
+        tempoMedioDeRespostaEmMinutos,
+        encaminhamentos: encaminhados,
+        internacoesNotificadas: internacoesNoMes,
+        tratamentosSuspensos: suspensos,
+        pacientesSemRedeDeApoio: semRedeDeApoio,
+        pacientesComDificuldadeDeAcesso: comDificuldadeDeAcesso,
+      },
+      barreiras: barreiras
+        .map((b) => ({ tipo: b.tipo, quantidade: b._count._all }))
+        .sort((a, b) => b.quantidade - a.quantidade),
+      alertasPreTratamento: pendencias.map((p) => ({
+        id: p.id,
+        pacienteId: p.paciente.id,
+        paciente: p.paciente.nome,
+        tipo: p.tipo,
+        descricao: p.descricao,
+        referenteA: p.referenteA,
+      })),
+      mural: {
+        pacientesInternados: internacoesAbertas,
+        tratamentosSuspensos: suspensos,
+        pendenciasParaAmanha: pendencias.length,
+        barreirasAbertas: barreiras.reduce((total, b) => total + b._count._all, 0),
+      },
+    };
+  });
+
+  /**
+   * Bloco 5 dos prints — indicadores de toxicidade.
+   *
+   * Leitura agregada, sem dado identificável no retorno: nenhum nome, nenhum id de
+   * paciente. É por isso que o `LogDeAcesso` registrado aqui não carrega `pacienteId`
+   * — não houve leitura de prontuário, houve contagem.
+   */
+  app.get('/painel/indicadores-de-toxicidade', comAcesso, async (requisicao) => {
+    const usuario = usuarioDa(requisicao);
+    const { dias } = z
+      .object({ dias: z.coerce.number().int().min(7).max(365).default(30) })
+      .parse(requisicao.query);
+
+    const agora = new Date();
+    const desde = new Date(agora.getTime() - dias * 24 * 60 * 60 * 1000);
+
+    const sessoes = await prisma.sessaoDeTriagem.findMany({
+      where: { estado: 'CONCLUIDA', concluidaEm: { gte: desde } },
+      select: {
+        id: true,
+        concluidaEm: true,
+        paciente: {
+          select: {
+            tratamentos: {
+              where: { encerradoEm: null },
+              take: 1,
+              orderBy: { iniciadoEm: 'desc' },
+              select: { protocolo: { select: { nome: true } } },
+            },
+          },
+        },
+        classificacoes: {
+          where: { origem: 'ORIGINAL' },
+          take: 1,
+          select: { explicacao: true },
+        },
+      },
+    });
+
+    /* Uma ocorrência por SINTOMA classificado como amarelo ou vermelho. */
+    const ocorrencias = sessoes.flatMap((sessao) => {
+      const protocolo = sessao.paciente.tratamentos[0]?.protocolo.nome ?? null;
+      const explicacao = sessao.classificacoes[0]?.explicacao;
+      if (typeof explicacao !== 'object' || explicacao === null) return [];
+
+      const porSintoma = (explicacao as { porSintoma?: unknown }).porSintoma;
+      if (!Array.isArray(porSintoma)) return [];
+
+      return porSintoma.flatMap((bloco) => {
+        if (typeof bloco !== 'object' || bloco === null) return [];
+        const b = bloco as { sintoma?: unknown; classificacao?: unknown };
+        if (typeof b.sintoma !== 'string' || typeof b.classificacao !== 'string') {
+          return [];
+        }
+        return [
+          {
+            sintoma: b.sintoma as Sintoma,
+            classificacao: b.classificacao as Classificacao,
+            protocolo,
+            sessaoId: sessao.id,
+            quando: (sessao.concluidaEm ?? agora).toISOString(),
+          },
+        ];
+      });
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'LEITURA_DE_PACIENTE',
+      usuarioId: usuario.id,
+    });
+
+    /* A janela é aplicada duas vezes de propósito: na consulta, para não trazer o
+       banco inteiro, e na função pura, que é onde a regra vive e está testada. */
+    return montarIndicadoresDeToxicidade(ocorrencias, sessoes.length, agora, dias);
+  });
+
+  /**
+   * Bloco 7 dos prints — acompanhamento de intervenções.
+   *
+   * Responde "o que aconteceu depois que a enfermagem ligou". Sem esta tela, a
+   * intervenção era registrada e sumia: o follow-up vivia na memória de quem atendeu,
+   * e memória não passa de plantão para plantão.
+   *
+   * Por padrão devolve só o que continua ABERTO, porque a pergunta do plantão é sobre
+   * pendência. `incluirResolvidas=true` traz o histórico completo.
+   */
+  app.get('/painel/intervencoes', comAcesso, async (requisicao) => {
+    const usuario = usuarioDa(requisicao);
+    const { incluirResolvidas } = z
+      .object({ incluirResolvidas: z.coerce.boolean().default(false) })
+      .parse(requisicao.query);
+
+    const intervencoes = await prisma.intervencao.findMany({
+      where: incluirResolvidas ? {} : { situacao: { not: 'RESOLVIDO' } },
+      orderBy: { registradaEm: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        conduta: true,
+        situacao: true,
+        contatoRealizadoEm: true,
+        registradaEm: true,
+        profissional: { select: { nome: true, funcao: true } },
+        sessaoDeTriagem: {
+          select: {
+            id: true,
+            paciente: { select: { id: true, nome: true } },
+            /* O motivo da intervenção é a classificação que a gerou. Sem ela a tabela
+               teria "paciente + conduta" e a coluna Motivo dos prints ficaria vazia. */
+            classificacoes: {
+              where: { origem: 'ORIGINAL' },
+              take: 1,
+              select: { resultado: true, explicacao: true },
+            },
+          },
+        },
+      },
+    });
+
+    await registrarAcesso(requisicao, {
+      acao: 'LEITURA_DE_HISTORICO',
+      usuarioId: usuario.id,
+    });
+
+    return {
+      itens: intervencoes.map((intervencao) => {
+        const classificacao = intervencao.sessaoDeTriagem.classificacoes[0];
+        const regras = lerRegrasDisparadas(classificacao?.explicacao);
+        /* O motivo é o sintoma da regra mais grave, e não a conduta: a conduta é o que
+           a enfermagem FEZ, e a coluna pergunta por que ela precisou fazer. */
+        const maisGrave = regras.find((r) => r.classificacao === 'VERMELHO') ?? regras[0];
+
+        return {
+          id: intervencao.id,
+          pacienteId: intervencao.sessaoDeTriagem.paciente.id,
+          paciente: intervencao.sessaoDeTriagem.paciente.nome,
+          sessaoId: intervencao.sessaoDeTriagem.id,
+          motivo: maisGrave?.sintoma ?? null,
+          justificativa: maisGrave?.justificativa ?? null,
+          classificacao: classificacao?.resultado ?? null,
+          situacao: intervencao.situacao,
+          conduta: intervencao.conduta,
+          profissional: intervencao.profissional.nome,
+          contatoRealizadoEm: intervencao.contatoRealizadoEm,
+          registradaEm: intervencao.registradaEm,
+        };
+      }),
+      resumo: {
+        abertas: intervencoes.filter((i) => i.situacao !== 'RESOLVIDO').length,
+        total: intervencoes.length,
+      },
+    };
+  });
+
   const intervencaoSchema = z.object({
     conduta: z.string().min(3).max(4000),
-    situacao: z.enum(['RESOLVIDO', 'EM_ACOMPANHAMENTO']),
+    situacao: z.enum([
+      'RESOLVIDO',
+      'EM_ACOMPANHAMENTO',
+      'AGUARDANDO_RETORNO',
+      'ENCAMINHADO_AO_PA',
+      'REAVALIAR',
+    ]),
     contatoRealizadoEm: z.coerce.date(),
   });
 
