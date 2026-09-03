@@ -29,7 +29,7 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarConjuntos } from '@/sistema/fonte';
-import { formatarDataEHora } from '@/sistema/formato';
+import { ehSomenteData, formatarData, formatarHora } from '@/sistema/formato';
 import type { ConjuntoResumido, EstadoDoConjunto } from '@/sistema/tipos';
 
 const ESTILO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
@@ -62,6 +62,30 @@ function SeloDoEstado({ estado }: { estado: EstadoDoConjunto }) {
     >
       {ROTULO_DO_ESTADO[estado]}
     </span>
+  );
+}
+
+/**
+ * Data em cima, hora embaixo.
+ *
+ * `03/08/2026 às 10:11` numa linha so custa 11.5rem de coluna, e com seis colunas
+ * isso empurrava a ultima para fora da tela em janela de 1330px. Quebrado em duas
+ * linhas custa 7.5rem e nao perde nada: a hora continua na tela, nao foi para o
+ * `title` nem para o detalhe.
+ *
+ * `ehSomenteData` existe porque coluna `@db.Date` nao tem hora. Formatar dia civil
+ * como instante produziria "00:00", uma hora que ninguem registrou.
+ */
+function DataEmDuasLinhas({ iso }: { iso: string }) {
+  return (
+    <>
+      <span className="block">{formatarData(iso)}</span>
+      {!ehSomenteData(iso) && (
+        <span className="block text-xs text-[var(--color-texto-fraco)]">
+          {formatarHora(iso)}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -163,15 +187,15 @@ export default function PaginaDeLimiares() {
                 com duas palavras por linha. Aqui a origem desce como linha secundaria
                 da descricao, as duas ficam presas a duas linhas, e o texto inteiro
                 mora no detalhe do conjunto, que e para onde a linha leva. */}
-            <Tabela rotulo="Conjuntos de limiares" larguraMinima="68rem">
+            <Tabela rotulo="Conjuntos de limiares" larguraMinima="56rem">
               <CabecalhoDaTabela
                 colunas={[
-                  { rotulo: 'Versão', largura: '10rem' },
+                  { rotulo: 'Versão', largura: '8rem' },
                   { rotulo: 'Descrição' },
-                  { rotulo: 'Estado', largura: '15rem' },
-                  { rotulo: 'Regras', largura: '6rem', alinhamento: 'direita' },
-                  { rotulo: 'Criado em', largura: '11rem' },
-                  { rotulo: 'Publicado em', largura: '11rem' },
+                  { rotulo: 'Estado', largura: '10rem' },
+                  { rotulo: 'Regras', largura: '5rem', alinhamento: 'direita' },
+                  { rotulo: 'Criado em', largura: '7.5rem' },
+                  { rotulo: 'Publicado em', largura: '8.5rem' },
                 ]}
               />
               <tbody>
@@ -195,24 +219,38 @@ export default function PaginaDeLimiares() {
                       >
                         Origem: {conjunto.origem}
                       </p>
+                      {/* O selo mora aqui, e nao na coluna Estado, por causa de
+                          largura: ele e uma pilula de 25 caracteres que nao quebra,
+                          e numa coluna de largura fixa ele passava a ditar 14rem
+                          sozinho. Aqui ele cabe na coluna que ja e flexivel. */}
+                      {!conjunto.validadoClinicamente && (
+                        <div className="mt-1.5">
+                          <SeloDeNaoValidado />
+                        </div>
+                      )}
                     </Celula>
                     <Celula>
                       <div className="flex flex-col items-start gap-1.5">
                         <SeloDoEstado estado={conjunto.estado} />
                         {conjunto.estado === 'PUBLICADO' && (
-                          <span className="text-xs text-[var(--color-texto-fraco)]">
+                          <span className="text-xs leading-snug text-[var(--color-texto-fraco)]">
                             classificando pacientes agora
                           </span>
                         )}
-                        {!conjunto.validadoClinicamente && <SeloDeNaoValidado />}
                       </div>
                     </Celula>
                     <Celula mono inteira alinhamento="direita">
                       {conjunto.quantidadeDeRegras}
                     </Celula>
-                    <Celula mono inteira>{formatarDataEHora(conjunto.criadoEm)}</Celula>
                     <Celula mono inteira>
-                      {conjunto.publicadoEm ? formatarDataEHora(conjunto.publicadoEm) : 'não publicado'}
+                      <DataEmDuasLinhas iso={conjunto.criadoEm} />
+                    </Celula>
+                    <Celula mono inteira>
+                      {conjunto.publicadoEm ? (
+                        <DataEmDuasLinhas iso={conjunto.publicadoEm} />
+                      ) : (
+                        'não publicado'
+                      )}
                     </Celula>
                   </LinhaDaTabela>
                 ))}
