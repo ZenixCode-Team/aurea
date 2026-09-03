@@ -12,7 +12,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Aviso, Botao, Cartao, Carregando, Rotulo } from '@/componentes/sistema/primitivos';
+import { CabecalhoDePainel } from '@/componentes/sistema/painel';
+import { Aviso, Botao, Cartao, Carregando } from '@/componentes/sistema/primitivos';
 import { buscarSolicitacoesDoPaciente } from '@/sistema/fonte';
 import { formatarHora } from '@/sistema/formato';
 import type { SolicitacaoDeContato } from '@/sistema/tipos';
@@ -58,7 +59,7 @@ export default function PaginaDeContato() {
   if (solicitacaoAberta) {
     return (
       <div className="flex flex-col gap-4">
-        <Rotulo>Falar com a enfermagem</Rotulo>
+        <CabecalhoDePainel titulo="Falar com a enfermagem" descricao="Seu pedido já está com a equipe." />
         <Cartao className="flex flex-col gap-2 p-5">
           <p className="text-base text-[var(--color-texto)]">
             A equipe recebeu seu pedido às {formatarHora(solicitacaoAberta.criadaEm)} e vai entrar em
@@ -80,7 +81,7 @@ export default function PaginaDeContato() {
   if (enviado) {
     return (
       <div className="flex flex-col gap-4">
-        <Rotulo>Falar com a enfermagem</Rotulo>
+        <CabecalhoDePainel titulo="Falar com a enfermagem" descricao="Seu pedido já está com a equipe." />
         <Cartao className="flex flex-col gap-2 p-5">
           <p className="text-base text-[var(--color-texto)]">
             Recebemos seu pedido às {enviado.horario} e a equipe vai entrar em contato.
@@ -104,7 +105,10 @@ export default function PaginaDeContato() {
         setEnviado({ motivo: motivo.trim(), horario: formatarHora(new Date().toISOString()) });
       }}
     >
-      <Rotulo>Falar com a enfermagem</Rotulo>
+      <CabecalhoDePainel
+        titulo="Falar com a enfermagem"
+        descricao="Conte um pouco do que está sentindo e a equipe entra em contato."
+      />
       <p className="text-sm text-[var(--color-texto-suave)]">
         Este não é um canal de emergência. Se a situação for grave, procure o serviço.
       </p>

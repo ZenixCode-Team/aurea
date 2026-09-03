@@ -73,6 +73,13 @@ export default function PaginaDeCheckin() {
   const [respostas, setRespostas] = useState<RespostasDoCheckin>({});
   const [indice, setIndice] = useState(0);
   const [resultado, setResultado] = useState<RetornoDoCheckin | null>(null);
+  /**
+   * O Aviso de erro é o mesmo componente para "não carregou o questionário" e
+   * "não conseguiu enviar", mas só o segundo caso tem como retentar sem perder
+   * trabalho (as respostas já estão no state). Guardamos a origem só pra decidir
+   * se o botão "Tentar de novo" aparece — o texto do Aviso já diz qual foi.
+   */
+  const [origemDoErro, setOrigemDoErro] = useState<'carregar' | 'enviar' | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -85,6 +92,7 @@ export default function PaginaDeCheckin() {
       .catch(() => {
         if (!cancelado) {
           setMensagemDeErro('Não foi possível carregar o questionário de hoje. Tente novamente em instantes.');
+          setOrigemDoErro('carregar');
           setFase('erro');
         }
       });
@@ -109,6 +117,7 @@ export default function PaginaDeCheckin() {
       setFase('resultado');
     } catch {
       setMensagemDeErro('Não conseguimos enviar suas respostas agora. Tente de novo em instantes.');
+      setOrigemDoErro('enviar');
       setFase('erro');
     }
   }
@@ -141,9 +150,18 @@ export default function PaginaDeCheckin() {
 
   if (fase === 'erro') {
     return (
-      <Aviso tom="grave" titulo="Algo não carregou">
-        {mensagemDeErro}
-      </Aviso>
+      <div className="flex flex-col gap-4">
+        <Aviso tom="grave" titulo="Algo não carregou">
+          {mensagemDeErro}
+        </Aviso>
+        {/* Só reenvia quando o erro foi no envio: as respostas já estão no state e
+            refazer o questionário do zero seria punir a pessoa por uma falha nossa. */}
+        {origemDoErro === 'enviar' && (
+          <Botao type="button" tamanho="amplo" onClick={() => void enviar(respostas)}>
+            Tentar de novo
+          </Botao>
+        )}
+      </div>
     );
   }
 

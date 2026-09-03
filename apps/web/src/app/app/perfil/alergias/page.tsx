@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Bloco } from '@/componentes/sistema/painel';
+import { Bloco, CabecalhoDePainel } from '@/componentes/sistema/painel';
 import { Aviso, Botao, Campo, Carregando } from '@/componentes/sistema/primitivos';
 import { buscarPerfilDoPaciente } from '@/sistema/fonte';
 import type { Alergia } from '@/sistema/tipos';
@@ -65,6 +65,8 @@ export default function PaginaDeAlergias() {
 
   return (
     <div className="flex flex-col gap-5">
+      <CabecalhoDePainel titulo="Alergias" descricao="O que já está registrado e como adicionar uma nova." />
+
       <Bloco titulo="Alergias registradas">
         {alergias.length === 0 ? (
           <p className="text-sm text-[var(--color-texto-suave)]">

@@ -1,5 +1,16 @@
+'use client';
+
 /**
  * Primitivos do sistema — do /entrar pra dentro.
+ *
+ * ESTE MÓDULO É CLIENTE. `Campo` guarda estado próprio (o alternador de mostrar
+ * senha), e hook em módulo sem `'use client'` quebra o build de produção sem que
+ * typecheck ou lint reclamem — foi exatamente o que aconteceu ao adicionar o
+ * alternador. A alternativa seria um arquivo separado só para o campo de senha, e
+ * ela perde: o alternador é comportamento do campo, e partir o primitivo em dois
+ * para agradar a fronteira servidor/cliente espalharia a decisão por dois lugares.
+ * O custo é estes primitivos irem para o pacote do navegador, que é onde as telas
+ * que os usam já rodam.
  *
  * Não confundir com `componentes/primitivos.tsx`, que é da landing. São dois
  * vocabulários visuais de propósito: a landing vende, o sistema é usado todo dia
@@ -11,6 +22,8 @@
  */
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { juntar } from './juntar';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -20,9 +33,7 @@ import type {
 import { ROTULO_DA_SITUACAO } from '@/sistema/formato';
 import type { Classificacao, SituacaoNoPainel } from '@/sistema/tipos';
 
-export function juntar(...classes: (string | false | null | undefined)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
+export { juntar };
 
 /* ==========================================================================
    Botão
@@ -121,12 +132,31 @@ interface PropsDoCampo extends InputHTMLAttributes<HTMLInputElement> {
   erro?: string;
   /** Números clínicos vão em mono: valor que se lê errado tem consequência. */
   mono?: boolean;
+  /**
+   * Só faz sentido com `type="password"`. Fica aqui em `Campo` — não numa tela —
+   * porque toda senha do sistema (entrar, primeiro acesso, trocar senha) merece o
+   * mesmo alternador; resolver uma vez aqui evita reinventar (e esquecer) em cada tela.
+   */
+  comAlternadorDeSenha?: boolean;
 }
 
-export function Campo({ rotulo, ajuda, erro, mono, className, id, ...resto }: PropsDoCampo) {
+export function Campo({
+  rotulo,
+  ajuda,
+  erro,
+  mono,
+  className,
+  id,
+  comAlternadorDeSenha,
+  type,
+  ...resto
+}: PropsDoCampo) {
   const identificador = id ?? `campo-${rotulo.toLowerCase().replace(/\s+/g, '-')}`;
   const idDaAjuda = ajuda ? `${identificador}-ajuda` : undefined;
   const idDoErro = erro ? `${identificador}-erro` : undefined;
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const mostraAlternador = comAlternadorDeSenha && type === 'password';
+  const tipoEfetivo = mostraAlternador && senhaVisivel ? 'text' : type;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -138,22 +168,36 @@ export function Campo({ rotulo, ajuda, erro, mono, className, id, ...resto }: Pr
           {ajuda}
         </p>
       )}
-      <input
-        {...resto}
-        id={identificador}
-        aria-describedby={juntar(idDaAjuda, idDoErro) || undefined}
-        aria-invalid={erro ? true : undefined}
-        className={juntar(
-          'rounded-[var(--radius-sistema)] border bg-[var(--color-superficie-alta)] px-3 py-2.5 text-base',
-          'text-[var(--color-texto)] placeholder:text-[var(--color-texto-fraco)]',
-          'transition-colors duration-150',
-          mono && 'font-mono tabular-nums',
-          erro
-            ? 'border-[var(--color-risco-vermelho)]'
-            : 'border-[var(--color-borda-forte)] focus:border-[var(--color-texto-suave)]',
-          className,
+      <div className="relative">
+        <input
+          {...resto}
+          type={tipoEfetivo}
+          id={identificador}
+          aria-describedby={juntar(idDaAjuda, idDoErro) || undefined}
+          aria-invalid={erro ? true : undefined}
+          className={juntar(
+            'w-full rounded-[var(--radius-sistema)] border bg-[var(--color-superficie-alta)] px-3 py-2.5 text-base',
+            'text-[var(--color-texto)] placeholder:text-[var(--color-texto-fraco)]',
+            'transition-colors duration-150',
+            mono && 'font-mono tabular-nums',
+            mostraAlternador && 'pr-16',
+            erro
+              ? 'border-[var(--color-risco-vermelho)]'
+              : 'border-[var(--color-borda-forte)] focus:border-[var(--color-texto-suave)]',
+            className,
+          )}
+        />
+        {mostraAlternador && (
+          <button
+            type="button"
+            onClick={() => setSenhaVisivel((atual) => !atual)}
+            aria-label={senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'}
+            className="absolute inset-y-0 right-0 px-3 text-xs font-medium text-[var(--color-texto-suave)] hover:text-[var(--color-texto)]"
+          >
+            {senhaVisivel ? 'Ocultar' : 'Mostrar'}
+          </button>
         )}
-      />
+      </div>
       {erro && (
         <p id={idDoErro} role="alert" className="text-xs text-[var(--color-risco-vermelho)]">
           {erro}
@@ -329,6 +373,11 @@ export function Aviso({
   return (
     <div
       role={tom === 'grave' ? 'alert' : 'status'}
+      /* `role` sozinho tem `aria-live` implícito na spec, mas nem todo par leitor de
+         tela/navegador honra o implícito de forma confiável — o mesmo motivo que já
+         faz `Carregando` (acima) declarar os dois juntos. `alert` já é assertivo por
+         definição; só os tons não-graves precisam do `polite` explícito. */
+      aria-live={tom === 'grave' ? undefined : 'polite'}
       className={juntar('rounded-[var(--radius-sistema)] border px-4 py-3 text-sm', estilo)}
     >
       {titulo && <p className="mb-1 font-medium text-[var(--color-texto)]">{titulo}</p>}

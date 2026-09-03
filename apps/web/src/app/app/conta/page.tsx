@@ -6,7 +6,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bloco } from '@/componentes/sistema/painel';
+import { Bloco, CabecalhoDePainel } from '@/componentes/sistema/painel';
 import { Botao, LinkComoBotao } from '@/componentes/sistema/primitivos';
 import { useSessao } from '@/sistema/sessao';
 
@@ -16,6 +16,8 @@ export default function PaginaDeConta() {
 
   return (
     <div className="flex flex-col gap-5">
+      <CabecalhoDePainel titulo="Conta" descricao="Seus dados de acesso e o termo que você aceitou." />
+
       <Bloco titulo="Sua conta">
         <p className="text-lg text-[var(--color-texto)]">{usuario?.nome ?? ''}</p>
       </Bloco>
@@ -35,8 +37,11 @@ export default function PaginaDeConta() {
         variante="secundario"
         tamanho="amplo"
         type="button"
-        onClick={() => {
-          sair();
+        onClick={async () => {
+          /* Aguarda `sair()` antes de trocar de rota — igual ao shell do app
+             (layout.tsx): sem o await, o redirect corre antes da sessão ser
+             limpa e a página seguinte pode renderizar com estado de sessão obsoleto. */
+          await sair();
           router.replace('/entrar');
         }}
       >

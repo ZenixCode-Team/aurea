@@ -14,10 +14,10 @@
  * Os atalhos de demonstração no rodapé existem apenas no modo sintético.
  */
 
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import { GradienteAnimado } from '@/components/gradiente-animado';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Aviso, Botao, Campo, Rotulo } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte } from '@/sistema/erros';
 import {
@@ -36,7 +36,33 @@ const PERFIL_POR_CHAVE: Record<ChaveDeUsuario, Perfil> = {
   administrador: 'ADMINISTRADOR',
 };
 
+/**
+ * A landing manda `?perfil=paciente|enfermagem|admin` pra dar contexto a quem já
+ * escolheu o caminho por lá — mas quem decide quem entra continua sendo a API, a
+ * partir do que a pessoa digita. Por isso o parâmetro só troca a ajuda do campo de
+ * identificação; um valor estranho ou ausente devolve `undefined` e a tela volta a
+ * se comportar como hoje, sem pista nenhuma.
+ */
+function ajudaDoIdentificador(perfil: string | null): string | undefined {
+  if (perfil === 'paciente') return 'Digite seu CPF';
+  if (perfil === 'enfermagem' || perfil === 'admin') return 'Digite seu e-mail';
+  return undefined;
+}
+
 export default function EntrarPage() {
+  return (
+    /* `useSearchParams` opta a árvore em client-side rendering até resolver a busca,
+       e Next 16 passou a exigir a fronteira de Suspense explícita pra isso — sem ela,
+       o build falha. O fallback não precisa ser rico: a troca é praticamente instantânea. */
+    <Suspense fallback={null}>
+      <ConteudoDeEntrar />
+    </Suspense>
+  );
+}
+
+function ConteudoDeEntrar() {
+  const searchParams = useSearchParams();
+  const ajudaIdentificador = ajudaDoIdentificador(searchParams.get('perfil'));
   const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -105,13 +131,22 @@ export default function EntrarPage() {
 
           {erro && (
             <div className="mt-5">
-              <Aviso tom="grave">{erro}</Aviso>
+              <Aviso tom="grave">
+                {erro}{' '}
+                {/* A mensagem continua única por decisão de segurança (não revelar se o
+                    usuário existe), mas "não conferem" sozinho deixa a pessoa sem próximo
+                    passo — o link aponta pra ele sem abrir exceção nenhuma na mensagem. */}
+                <Link href="/entrar/recuperar" className="underline underline-offset-2">
+                  Recuperar acesso
+                </Link>
+              </Aviso>
             </div>
           )}
 
           <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4" noValidate>
             <Campo
               rotulo="CPF ou e-mail"
+              ajuda={ajudaIdentificador}
               type="text"
               autoComplete="username"
               value={identificador}
@@ -123,6 +158,7 @@ export default function EntrarPage() {
               rotulo="Senha"
               type="password"
               autoComplete="current-password"
+              comAlternadorDeSenha
               value={senha}
               onChange={(evento) => setSenha(evento.target.value)}
               disabled={enviando}

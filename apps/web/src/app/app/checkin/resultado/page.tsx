@@ -11,6 +11,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Carregando } from '@/componentes/sistema/primitivos';
 
 export default function PaginaDeResultadoDoCheckin() {
   const router = useRouter();
@@ -19,5 +20,7 @@ export default function PaginaDeResultadoDoCheckin() {
     router.replace('/app/checkin');
   }, [router]);
 
-  return null;
+  /* `null` deixava a tela branca no instante entre o mount e o replace — troca de
+     rota é assíncrona, não instantânea. `Carregando` cobre esse vão. */
+  return <Carregando linhas={4} />;
 }

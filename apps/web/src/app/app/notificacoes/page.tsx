@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { CabecalhoDePainel } from '@/componentes/sistema/painel';
 import {
   Aviso,
   Cartao,
@@ -54,10 +55,13 @@ export default function PaginaDeNotificacoes() {
 
   if (notificacoes.length === 0) {
     return (
-      <EstadoVazio
-        titulo="Nenhum aviso por enquanto"
-        descricao="Quando a equipe enviar algo, aparece aqui."
-      />
+      <div className="max-w-[44rem]">
+        <CabecalhoDePainel titulo="Avisos" />
+        <EstadoVazio
+          titulo="Nenhum aviso por enquanto"
+          descricao="Quando a equipe enviar algo, aparece aqui."
+        />
+      </div>
     );
   }
 
@@ -66,6 +70,8 @@ export default function PaginaDeNotificacoes() {
 
   return (
     <div className="flex flex-col gap-8">
+      <CabecalhoDePainel titulo="Avisos" descricao="Mensagens enviadas pela equipe do seu tratamento." />
+
       {naoLidas.length > 0 && (
         <section className="flex flex-col gap-3">
           <Rotulo>Não lidas</Rotulo>

@@ -13,7 +13,10 @@
 
 import Link from 'next/link';
 import { CabecalhoDePainel } from '@/componentes/sistema/painel';
-import { Aviso, Rotulo, juntar } from '@/componentes/sistema/primitivos';
+import { Aviso, Rotulo } from '@/componentes/sistema/primitivos';
+/* Direto do módulo puro: esta página é componente de SERVIDOR e não pode chamar
+   função exportada por módulo cliente. Ver o comentário em `juntar.ts`. */
+import { juntar } from '@/componentes/sistema/juntar';
 
 interface EntidadeDoCadastro {
   readonly href: string;

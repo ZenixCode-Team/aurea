@@ -13,7 +13,7 @@
  * fase são sintéticos e que o sistema não substitui atendimento.
  */
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type UIEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { FundoOrganico } from '@/components/fundo-organico';
 import { Botao, Cartao, Medida, Rotulo } from '@/componentes/sistema/primitivos';
@@ -23,9 +23,34 @@ const DESCRICAO_DA_VERSAO = 'Versão 1.0 · vigente desde junho de 2026';
 
 export default function ConsentimentoPage() {
   const [concordo, setConcordo] = useState(false);
+  /* Sem isto, o checkbox liberava a caixa rolável inteira só pela pessoa ver a
+     primeira tela do termo — que nem chega a mencionar LGPD. "Concordo" só pode
+     significar algo depois que o termo inteiro passou pela tela. */
+  const [rolouAteOFim, setRolouAteOFim] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const { aceitarConsentimento } = useSessao();
   const router = useRouter();
+  const caixaDoTermoRef = useRef<HTMLDivElement>(null);
+
+  function aoRolarOTermo(evento: UIEvent<HTMLDivElement>) {
+    if (rolouAteOFim) return;
+    const alvo = evento.currentTarget;
+    /* Folga de 4px: alguns navegadores arredondam `scrollHeight`/`clientHeight` e a
+       pessoa que rolou até o fim de verdade nunca deveria ficar 1px aquém do gatilho. */
+    if (alvo.scrollTop + alvo.clientHeight >= alvo.scrollHeight - 4) {
+      setRolouAteOFim(true);
+    }
+  }
+
+  useEffect(() => {
+    /* Termo curto (fonte grande, viewport alta) pode caber sem sobrar o que rolar —
+       aí o evento de scroll nunca dispara e a pessoa nunca conseguiria concordar.
+       Confere uma vez, no mount, se a caixa já nasce sem overflow. */
+    const caixa = caixaDoTermoRef.current;
+    if (caixa && caixa.scrollHeight <= caixa.clientHeight) {
+      setRolouAteOFim(true);
+    }
+  }, []);
 
   async function aoConfirmar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -59,7 +84,11 @@ export default function ConsentimentoPage() {
           </p>
 
           <Cartao className="mt-6 flex flex-col overflow-hidden">
-            <div className="max-h-[20rem] overflow-y-auto border-b border-[var(--color-borda)] p-6">
+            <div
+              ref={caixaDoTermoRef}
+              onScroll={aoRolarOTermo}
+              className="max-h-[20rem] overflow-y-auto border-b border-[var(--color-borda)] p-6"
+            >
               <div className="mb-5 flex items-center justify-between gap-4">
                 <Rotulo>Monitoramento remoto de toxicidade</Rotulo>
                 <Medida>{DESCRICAO_DA_VERSAO}</Medida>
@@ -131,20 +160,30 @@ export default function ConsentimentoPage() {
               </div>
             </div>
 
-            <form onSubmit={aoConfirmar} className="flex flex-col gap-4 p-6">
+            <form onSubmit={aoConfirmar} className="flex flex-col gap-2 p-6">
               <label className="flex items-start gap-3 text-sm text-[var(--color-texto)]">
                 <input
                   type="checkbox"
                   checked={concordo}
                   onChange={(evento) => setConcordo(evento.target.checked)}
-                  disabled={enviando}
+                  disabled={enviando || !rolouAteOFim}
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-[var(--color-borda-forte)] accent-[var(--color-superficie-invertida)]"
                 />
                 <span>Li e concordo com os termos acima.</span>
               </label>
-              <Botao type="submit" tamanho="amplo" disabled={!concordo || enviando}>
+              {!rolouAteOFim && (
+                <p className="pl-7 text-xs text-[var(--color-texto-fraco)]">
+                  Role o termo acima até o fim para habilitar esta caixa.
+                </p>
+              )}
+              <Botao type="submit" tamanho="amplo" disabled={!concordo || enviando} className="mt-2">
                 {enviando ? 'Confirmando…' : 'Concordo e continuar'}
               </Botao>
+              {!concordo && !enviando && (
+                <p className="text-center text-xs text-[var(--color-texto-fraco)]">
+                  Marque a caixa acima para continuar.
+                </p>
+              )}
             </form>
           </Cartao>
         </div>
