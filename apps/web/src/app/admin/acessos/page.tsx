@@ -28,12 +28,13 @@ import {
   CabecalhoDaTabela,
   Carregando,
   Celula,
+  DataEmDuasLinhas,
   EstadoVazio,
   LinhaDaTabela,
   Tabela,
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarRegistroDeAcessos } from '@/sistema/fonte';
-import { ROTULO_DA_ACAO, formatarDataEHora } from '@/sistema/formato';
+import { ROTULO_DA_ACAO, formatarData, formatarHora } from '@/sistema/formato';
 import type { AcaoDeAcesso, RegistroDeAcesso } from '@/sistema/tipos';
 
 type Carregamento =
@@ -157,9 +158,13 @@ export default function PaginaDeAcessos() {
             <CartaoDeIndicador rotulo="Registros" valor={estado.registros.length} tom="neutro" />
             <CartaoDeIndicador rotulo="Usuários distintos" valor={usuariosDistintos} tom="neutro" />
             <CartaoDeIndicador rotulo="Tipos de ação" valor={acoesPresentes.length} tom="neutro" />
+            {/* Data no valor, hora no apoio. A frase inteira em 18px passa de 160px e
+                quebra em duas linhas na malha de dois cartoes do celular, o que
+                desalinha o cartao do vizinho. O apoio ja existia vazio aqui. */}
             <CartaoDeIndicador
               rotulo="Último registro"
-              valor={ultimoAcesso ? formatarDataEHora(ultimoAcesso.aconteceuEm) : 'sem registro'}
+              valor={ultimoAcesso ? formatarData(ultimoAcesso.aconteceuEm) : 'sem registro'}
+              apoio={ultimoAcesso ? `às ${formatarHora(ultimoAcesso.aconteceuEm)}` : undefined}
               formato="texto"
               tom="neutro"
             />
@@ -218,14 +223,22 @@ export default function PaginaDeAcessos() {
                 <EstadoVazio titulo="Nenhum acesso registrado para este filtro" />
               </div>
             ) : (
-              <Tabela rotulo="Registro de acessos">
+              <Tabela rotulo="Registro de acessos" larguraMinima="56rem">
                 <CabecalhoDaTabela
-                  colunas={['Quando', 'Usuário', 'Ação', 'Recurso', 'Endereço de origem']}
+                  colunas={[
+                  { rotulo: 'Quando', largura: '7.5rem' },
+                  { rotulo: 'Usuário', largura: '13rem' },
+                  { rotulo: 'Ação', largura: '12rem' },
+                  { rotulo: 'Recurso' },
+                  { rotulo: 'Endereço de origem', largura: '11rem' },
+                ]}
                 />
                 <tbody>
                   {registrosFiltrados.map((registro) => (
                     <LinhaDaTabela key={registro.id}>
-                      <Celula mono>{formatarDataEHora(registro.aconteceuEm)}</Celula>
+                      <Celula mono inteira>
+                        <DataEmDuasLinhas iso={registro.aconteceuEm} />
+                      </Celula>
                       <Celula>{registro.usuario}</Celula>
                       <Celula>{ROTULO_DA_ACAO[registro.acao] ?? registro.acao}</Celula>
                       <Celula>{registro.recurso ?? 'não informado'}</Celula>

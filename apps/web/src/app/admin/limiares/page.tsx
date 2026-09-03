@@ -24,12 +24,12 @@ import {
   EstadoVazio,
   LinkComoBotao,
   LinhaDaTabela,
+  DataEmDuasLinhas,
   SeloDeNaoValidado,
   Tabela,
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarConjuntos } from '@/sistema/fonte';
-import { ehSomenteData, formatarData, formatarHora } from '@/sistema/formato';
 import type { ConjuntoResumido, EstadoDoConjunto } from '@/sistema/tipos';
 
 const ESTILO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
@@ -62,30 +62,6 @@ function SeloDoEstado({ estado }: { estado: EstadoDoConjunto }) {
     >
       {ROTULO_DO_ESTADO[estado]}
     </span>
-  );
-}
-
-/**
- * Data em cima, hora embaixo.
- *
- * `03/08/2026 às 10:11` numa linha so custa 11.5rem de coluna, e com seis colunas
- * isso empurrava a ultima para fora da tela em janela de 1330px. Quebrado em duas
- * linhas custa 7.5rem e nao perde nada: a hora continua na tela, nao foi para o
- * `title` nem para o detalhe.
- *
- * `ehSomenteData` existe porque coluna `@db.Date` nao tem hora. Formatar dia civil
- * como instante produziria "00:00", uma hora que ninguem registrou.
- */
-function DataEmDuasLinhas({ iso }: { iso: string }) {
-  return (
-    <>
-      <span className="block">{formatarData(iso)}</span>
-      {!ehSomenteData(iso) && (
-        <span className="block text-xs text-[var(--color-texto-fraco)]">
-          {formatarHora(iso)}
-        </span>
-      )}
-    </>
   );
 }
 

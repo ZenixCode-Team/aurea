@@ -35,7 +35,14 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarConjuntos, buscarRegrasDoConjunto } from '@/sistema/fonte';
-import { ROTULO_DO_OPERADOR, ROTULO_DO_SINTOMA, formatarDataEHora, formatarMedida } from '@/sistema/formato';
+import {
+  ROTULO_DO_OPERADOR,
+  ROTULO_DO_SINTOMA,
+  ehSomenteData,
+  formatarData,
+  formatarHora,
+  formatarMedida,
+} from '@/sistema/formato';
 import type { Classificacao, ConjuntoResumido, EstadoDoConjunto, RegraResumida, Sintoma } from '@/sistema/tipos';
 
 type Carregamento =
@@ -274,14 +281,26 @@ export default function PaginaDeDetalheDoConjunto() {
             <CartaoDeIndicador rotulo="Regras" valor={estado.regras.length} tom="neutro" />
             <CartaoDeIndicador
               rotulo="Criado em"
-              valor={formatarDataEHora(estado.conjunto.criadoEm)}
+              valor={formatarData(estado.conjunto.criadoEm)}
+              apoio={
+                ehSomenteData(estado.conjunto.criadoEm)
+                  ? undefined
+                  : `às ${formatarHora(estado.conjunto.criadoEm)}`
+              }
               formato="texto"
               tom="neutro"
             />
             <CartaoDeIndicador
               rotulo="Publicado em"
               valor={
-                estado.conjunto.publicadoEm ? formatarDataEHora(estado.conjunto.publicadoEm) : 'não publicado'
+                estado.conjunto.publicadoEm
+                  ? formatarData(estado.conjunto.publicadoEm)
+                  : 'não publicado'
+              }
+              apoio={
+                estado.conjunto.publicadoEm && !ehSomenteData(estado.conjunto.publicadoEm)
+                  ? `às ${formatarHora(estado.conjunto.publicadoEm)}`
+                  : undefined
               }
               formato="texto"
               tom="neutro"
@@ -352,9 +371,15 @@ export default function PaginaDeDetalheDoConjunto() {
                 descricao="Regras deste sintoma neste conjunto, com a justificativa clínica de cada corte."
                 semPadding
               >
-                <Tabela rotulo={`Regras de ${ROTULO_DO_SINTOMA[grupoEmFoco.sintoma] ?? grupoEmFoco.sintoma}`}>
+                <Tabela rotulo={`Regras de ${ROTULO_DO_SINTOMA[grupoEmFoco.sintoma] ?? grupoEmFoco.sintoma}`} larguraMinima="42rem">
                   <CabecalhoDaTabela
-                    colunas={['Campo', 'Operador', 'Valor', 'Classificação', 'Justificativa clínica']}
+                    colunas={[
+                    { rotulo: 'Campo', largura: '10rem' },
+                    { rotulo: 'Operador', largura: '7.5rem' },
+                    { rotulo: 'Valor', largura: '5rem' },
+                    { rotulo: 'Classificação', largura: '8rem' },
+                    { rotulo: 'Justificativa clínica' },
+                  ]}
                   />
                   <tbody>
                     {grupoEmFoco.regras.map((regra) => (
