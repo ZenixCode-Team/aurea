@@ -266,3 +266,18 @@ export const PESO_DA_SITUACAO: Record<SituacaoNoPainel, number> = {
   SEM_RESPOSTA_HOJE: 3,
   VERDE: 4,
 };
+
+/**
+ * Desfecho da intervenção, no vocabulário do plantão.
+ *
+ * "Aguardando retorno" e "Reavaliar amanhã" não são estados vagos: o primeiro quer
+ * dizer que a bola está com o paciente, o segundo que está com a equipe. Quem lê a
+ * tabela precisa saber de quem é a próxima ação sem abrir a conduta.
+ */
+export const ROTULO_DO_DESFECHO: Record<string, string> = {
+  RESOLVIDO: 'Resolvido',
+  EM_ACOMPANHAMENTO: 'Em acompanhamento',
+  AGUARDANDO_RETORNO: 'Aguardando retorno',
+  ENCAMINHADO_AO_PA: 'Encaminhado ao pronto atendimento',
+  REAVALIAR: 'Reavaliar',
+};
