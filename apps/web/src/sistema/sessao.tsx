@@ -189,7 +189,7 @@ export function ProvedorDeSessao({ children }: { children: React.ReactNode }) {
 
     const eu = await chamar<RespostaDeQuemSou>('/autenticacao/eu');
     const identificado: UsuarioDaSessao = {
-      nome: eu.perfilDetalhado?.nome ?? 'Sem nome cadastrado',
+      nome: eu.perfilDetalhado?.nome ?? null,
       perfil: eu.perfil,
       permissoes: eu.permissoes,
     };

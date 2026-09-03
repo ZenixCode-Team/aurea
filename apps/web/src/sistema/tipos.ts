@@ -59,7 +59,13 @@ export interface SessaoAberta {
 }
 
 export interface UsuarioDaSessao {
-  readonly nome: string;
+  /**
+   * `null` quando o login nao tem ficha com nome. E o caso normal do
+   * ADMINISTRADOR: ele nao tem registro de `Profissional`, so conta de acesso.
+   * Ausencia nunca vira texto inventado, entao a tela deixa de mostrar a linha em
+   * vez de imprimir "Sem nome cadastrado" no lugar onde a pessoa espera o proprio nome.
+   */
+  readonly nome: string | null;
   readonly perfil: Perfil;
   /** Só profissional tem. Governa o que aparece no painel e no admin. */
   readonly permissoes: readonly Permissao[];

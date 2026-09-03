@@ -59,11 +59,26 @@ export default function LayoutDoAdmin({ children }: { children: React.ReactNode 
         caminhoAtual={caminho}
         rodape={
           <div className="flex flex-col gap-2">
+            {/* O administrador nao tem ficha de profissional, entao nao tem nome a
+                mostrar. Sem nome, sobra o papel: e verdade, e cabe. */}
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-[var(--color-texto)]">
-                {usuario?.nome}
+              {usuario?.nome && (
+                <p className="truncate text-sm font-medium text-[var(--color-texto)]">
+                  {usuario.nome}
+                </p>
+              )}
+              {/* Sem nome, o papel assume o posto de identidade e ganha o corpo dele.
+                  `juntar` concatena classe, nao resolve conflito do Tailwind: por isso
+                  a escolha e um ternario inteiro, e nao duas classes de tamanho. */}
+              <p
+                className={
+                  usuario?.nome
+                    ? 'text-xs text-[var(--color-texto-fraco)]'
+                    : 'text-sm font-medium text-[var(--color-texto)]'
+                }
+              >
+                Orientação clínica
               </p>
-              <p className="text-xs text-[var(--color-texto-fraco)]">Orientação clínica</p>
             </div>
             <Botao variante="secundario" tamanho="compacto" onClick={encerrar}>
               Sair
