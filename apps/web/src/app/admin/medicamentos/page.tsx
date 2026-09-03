@@ -42,6 +42,7 @@ export default function PaginaDeMedicamentos() {
   const [nome, setNome] = useState('');
   const [principioAtivo, setPrincipioAtivo] = useState('');
   const [erroDoFormulario, setErroDoFormulario] = useState<string | null>(null);
+  const [avisoDeGravacao, setAvisoDeGravacao] = useState(false);
 
   useEffect(() => {
     buscarMedicamentos()
@@ -88,6 +89,7 @@ export default function PaginaDeMedicamentos() {
       },
     ]);
     setModalAberto(false);
+    setAvisoDeGravacao(true);
   }
 
   return (
@@ -102,6 +104,22 @@ export default function PaginaDeMedicamentos() {
           </Botao>
         }
       />
+
+      {avisoDeGravacao && (
+        <div className="mb-6">
+          <Aviso tom="informacao" titulo="Medicamento adicionado apenas à lista local">
+            <div className="flex items-center justify-between gap-4">
+              <span>
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para medicamento
+                ainda. Isso é a Onda F.
+              </span>
+              <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
+                Entendi
+              </Botao>
+            </div>
+          </Aviso>
+        </div>
+      )}
 
       {estado.situacao === 'CARREGANDO' && <Carregando linhas={5} />}
 

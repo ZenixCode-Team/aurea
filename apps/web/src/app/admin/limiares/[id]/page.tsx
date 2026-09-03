@@ -16,6 +16,7 @@
  * foco, nunca esconde uma regra que já está em foco.
  */
 
+import { ARVORE_DE_TRIAGEM } from '@aurea/contratos';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -57,10 +58,23 @@ const COR_DA_CLASSIFICACAO: Record<Classificacao, string> = {
   VERDE: 'var(--color-risco-verde)',
 };
 
-function formatarValorDaRegra(valor: number | null): string {
+/**
+ * A unidade vem da árvore de triagem (código), nunca do dado do limiar: 38,5 é
+ * °C, mas 3 pode ser episódios, dias ou nota de dor — sem o campo de origem o
+ * número sozinho é ambíguo. Campo sem `unidade` definida (ex.: contagem) não
+ * ganha uma inventada aqui: mostra só o número, como já era.
+ */
+function unidadeDoCampo(sintoma: Sintoma, campo: string): string | undefined {
+  const ramo = ARVORE_DE_TRIAGEM.find((r) => r.sintoma === sintoma);
+  if (!ramo) return undefined;
+  const definicao = ramo.porta.campo === campo ? ramo.porta : ramo.detalhes.find((d) => d.campo === campo);
+  return definicao && 'unidade' in definicao ? definicao.unidade : undefined;
+}
+
+function formatarValorDaRegra(valor: number | null, sintoma: Sintoma, campo: string): string {
   if (valor === null) return 'sem valor';
   const casas = Number.isInteger(valor) ? 0 : 1;
-  return formatarMedida(valor, casas);
+  return formatarMedida(valor, casas, unidadeDoCampo(sintoma, campo));
 }
 
 function agruparPorSintoma(
@@ -335,7 +349,7 @@ export default function PaginaDeDetalheDoConjunto() {
                       <LinhaDaTabela key={regra.id}>
                         <Celula mono>{regra.campo}</Celula>
                         <Celula>{ROTULO_DO_OPERADOR[regra.operador] ?? regra.operador}</Celula>
-                        <Celula mono>{formatarValorDaRegra(regra.valor)}</Celula>
+                        <Celula mono>{formatarValorDaRegra(regra.valor, regra.sintoma, regra.campo)}</Celula>
                         <Celula>
                           <SeloDeRisco situacao={regra.classificacao} />
                         </Celula>
@@ -364,6 +378,18 @@ export default function PaginaDeDetalheDoConjunto() {
               </>
             }
           >
+            {/* O selo de não validado fica na página, longe do botão — quem decide
+                aqui pode nunca ter rolado até ele. A ação é irreversível na prática
+                (regra do cabeçalho do arquivo), então o aviso repete DENTRO do modal,
+                no exato ponto da decisão. */}
+            {estado.conjunto.validadoClinicamente === false && (
+              <div className="mb-3">
+                <Aviso tom="grave" titulo="Conjunto ainda não validado clinicamente">
+                  Nenhuma pessoa com responsabilidade clínica assinou estes cortes. Publicar
+                  agora coloca esta política em produção sem essa revisão.
+                </Aviso>
+              </div>
+            )}
             <p className="text-sm text-[var(--color-texto)]">
               A partir da publicação, este conjunto passa a classificar pacientes reais no
               check-in diário; substitui o conjunto publicado hoje.

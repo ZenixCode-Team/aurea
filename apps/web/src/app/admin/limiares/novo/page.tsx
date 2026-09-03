@@ -246,20 +246,20 @@ export default function PaginaDeNovoConjunto() {
         <Bloco titulo="Metadados">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Campo
-              rotulo="Versão"
+              rotulo="Versão *"
               mono
               placeholder="ex.: rascunho-2"
               value={versao}
               onChange={(evento) => setVersao(evento.target.value)}
             />
             <Campo
-              rotulo="Descrição"
+              rotulo="Descrição *"
               placeholder="O que muda neste conjunto"
               value={descricao}
               onChange={(evento) => setDescricao(evento.target.value)}
             />
             <Campo
-              rotulo="Origem"
+              rotulo="Origem *"
               placeholder="ex.: CTCAE v5.0 + protocolo do serviço"
               value={origem}
               onChange={(evento) => setOrigem(evento.target.value)}
@@ -327,7 +327,7 @@ export default function PaginaDeNovoConjunto() {
               aoMudar={(sintoma) => setRascunho((atual) => ({ ...atual, sintoma }))}
             />
             <Campo
-              rotulo="Campo observado"
+              rotulo="Campo observado *"
               mono
               placeholder="ex.: temperaturaMaxima"
               value={rascunho.campo}
@@ -362,7 +362,7 @@ export default function PaginaDeNovoConjunto() {
               htmlFor="justificativa-da-regra"
               className="text-sm font-medium text-[var(--color-texto)]"
             >
-              Justificativa clínica
+              Justificativa clínica *
             </label>
             <textarea
               id="justificativa-da-regra"

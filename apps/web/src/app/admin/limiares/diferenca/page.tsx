@@ -18,6 +18,7 @@
  * nenhuma justificativa fica truncada ou atrás de "ver mais".
  */
 
+import { ARVORE_DE_TRIAGEM } from '@aurea/contratos';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Bloco, CabecalhoDePainel, CartaoDeIndicador, LinhaDeIndicadores } from '@/componentes/sistema/painel';
@@ -35,12 +36,25 @@ import {
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarConjuntos, buscarRegrasDoConjunto } from '@/sistema/fonte';
 import { ROTULO_DO_OPERADOR, ROTULO_DO_SINTOMA, formatarMedida } from '@/sistema/formato';
-import type { ConjuntoResumido, DiferencaEntreConjuntos, RegraResumida } from '@/sistema/tipos';
+import type { ConjuntoResumido, DiferencaEntreConjuntos, RegraResumida, Sintoma } from '@/sistema/tipos';
 
-function formatarValor(valor: number | null): string {
+/**
+ * A unidade vem da árvore de triagem (código), nunca do dado do limiar: 38,5 é
+ * °C, mas 3 pode ser episódios, dias ou nota de dor — sem o campo de origem o
+ * número sozinho é ambíguo. Campo sem `unidade` definida não ganha uma
+ * inventada aqui: mostra só o número, como já era.
+ */
+function unidadeDoCampo(sintoma: Sintoma, campo: string): string | undefined {
+  const ramo = ARVORE_DE_TRIAGEM.find((r) => r.sintoma === sintoma);
+  if (!ramo) return undefined;
+  const definicao = ramo.porta.campo === campo ? ramo.porta : ramo.detalhes.find((d) => d.campo === campo);
+  return definicao && 'unidade' in definicao ? definicao.unidade : undefined;
+}
+
+function formatarValor(valor: number | null, sintoma: Sintoma, campo: string): string {
   if (valor === null) return 'sem valor';
   const casas = Number.isInteger(valor) ? 0 : 1;
-  return formatarMedida(valor, casas);
+  return formatarMedida(valor, casas, unidadeDoCampo(sintoma, campo));
 }
 
 function regrasIguais(a: RegraResumida, b: RegraResumida): boolean {
@@ -266,7 +280,7 @@ function ConteudoDaDiferenca() {
                           <Celula>{ROTULO_DO_SINTOMA[regra.sintoma] ?? regra.sintoma}</Celula>
                           <Celula mono>{regra.campo}</Celula>
                           <Celula>{ROTULO_DO_OPERADOR[regra.operador] ?? regra.operador}</Celula>
-                          <Celula mono>{formatarValor(regra.valor)}</Celula>
+                          <Celula mono>{formatarValor(regra.valor, regra.sintoma, regra.campo)}</Celula>
                           <Celula>
                             <SeloDeRisco situacao={regra.classificacao} />
                           </Celula>
@@ -290,7 +304,7 @@ function ConteudoDaDiferenca() {
                           <Celula>{ROTULO_DO_SINTOMA[regra.sintoma] ?? regra.sintoma}</Celula>
                           <Celula mono>{regra.campo}</Celula>
                           <Celula>{ROTULO_DO_OPERADOR[regra.operador] ?? regra.operador}</Celula>
-                          <Celula mono>{formatarValor(regra.valor)}</Celula>
+                          <Celula mono>{formatarValor(regra.valor, regra.sintoma, regra.campo)}</Celula>
                           <Celula>
                             <SeloDeRisco situacao={regra.classificacao} />
                           </Celula>
@@ -315,7 +329,7 @@ function ConteudoDaDiferenca() {
                             <div className="flex flex-col gap-1 text-sm">
                               <span>
                                 {ROTULO_DO_OPERADOR[antes.operador] ?? antes.operador}{' '}
-                                <span className="font-mono">{formatarValor(antes.valor)}</span>
+                                <span className="font-mono">{formatarValor(antes.valor, antes.sintoma, antes.campo)}</span>
                               </span>
                               <SeloDeRisco situacao={antes.classificacao} />
                               <span className="text-[var(--color-texto-suave)]">{antes.justificativa}</span>
@@ -325,7 +339,7 @@ function ConteudoDaDiferenca() {
                             <div className="flex flex-col gap-1 text-sm">
                               <span>
                                 {ROTULO_DO_OPERADOR[depois.operador] ?? depois.operador}{' '}
-                                <span className="font-mono">{formatarValor(depois.valor)}</span>
+                                <span className="font-mono">{formatarValor(depois.valor, depois.sintoma, depois.campo)}</span>
                               </span>
                               <SeloDeRisco situacao={depois.classificacao} />
                               <span className="text-[var(--color-texto-suave)]">{depois.justificativa}</span>

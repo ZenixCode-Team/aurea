@@ -43,6 +43,7 @@ export default function PaginaDeProtocolos() {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [erroDoFormulario, setErroDoFormulario] = useState<string | null>(null);
+  const [avisoDeGravacao, setAvisoDeGravacao] = useState(false);
 
   useEffect(() => {
     buscarProtocolos()
@@ -81,6 +82,7 @@ export default function PaginaDeProtocolos() {
       },
     ]);
     setModalAberto(false);
+    setAvisoDeGravacao(true);
   }
 
   return (
@@ -95,6 +97,22 @@ export default function PaginaDeProtocolos() {
           </Botao>
         }
       />
+
+      {avisoDeGravacao && (
+        <div className="mb-6">
+          <Aviso tom="informacao" titulo="Protocolo adicionado apenas à lista local">
+            <div className="flex items-center justify-between gap-4">
+              <span>
+                Nada foi gravado no servidor; a API não tem endpoint de escrita para protocolo
+                ainda. Isso é a Onda F.
+              </span>
+              <Botao variante="discreto" tamanho="compacto" onClick={() => setAvisoDeGravacao(false)}>
+                Entendi
+              </Botao>
+            </div>
+          </Aviso>
+        </div>
+      )}
 
       {estado.situacao === 'CARREGANDO' && <Carregando linhas={5} />}
 

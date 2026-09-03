@@ -68,7 +68,7 @@ export default function PaginaDeConta() {
               Trocar senha
             </Botao>
             <Botao
-              variante="perigo"
+              variante="secundario"
               onClick={() => {
                 sair();
                 router.replace('/entrar');
