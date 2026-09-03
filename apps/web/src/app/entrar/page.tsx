@@ -49,6 +49,15 @@ function ajudaDoIdentificador(perfil: string | null): string | undefined {
   return undefined;
 }
 
+/**
+ * Mostra as credenciais na tela de entrada.
+ *
+ * Ligada por `NEXT_PUBLIC_AMBIENTE_DE_DEMONSTRACAO=1`. Sem a variável, nada muda —
+ * expor credencial precisa ser um ato deliberado, nunca um padrão herdado.
+ */
+const AMBIENTE_DE_DEMONSTRACAO =
+  process.env.NEXT_PUBLIC_AMBIENTE_DE_DEMONSTRACAO === '1';
+
 export default function EntrarPage() {
   return (
     /* `useSearchParams` opta a árvore em client-side rendering até resolver a busca,
@@ -216,6 +225,44 @@ function ConteudoDeEntrar() {
             </div>
           )}
         </div>
+
+        {AMBIENTE_DE_DEMONSTRACAO && (
+          /* Credenciais na tela.
+             *
+             * Existe para uma situacao especifica: apresentacao aberta, onde as
+             * pessoas chegam por QR code e nao ha a quem pedir login. So aparece com
+             * `NEXT_PUBLIC_AMBIENTE_DE_DEMONSTRACAO=1` ligado de proposito — expor
+             * credencial e decisao de seguranca, e decisao de seguranca nao pode ter
+             * padrao ligado. Desligar e remover a variavel; nada mais.
+             *
+             * A regra 1 do ADR-001 continua valendo: enquanto isto estiver visivel,
+             * este ambiente NAO recebe dado de paciente real. */
+          <div className="mt-6 rounded-[var(--radius-amplo)] border border-[var(--color-borda-forte)] bg-[var(--color-superficie-baixa)] px-4 py-4">
+            <p className="rotulo text-[var(--color-texto-suave)]">Ambiente de demonstração</p>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--color-texto-suave)]">
+              Todos os pacientes deste ambiente são fictícios. Entre com uma das contas
+              abaixo; a senha é a mesma para todas.
+            </p>
+            <dl className="mt-3 flex flex-col gap-1.5 font-mono text-xs tabular-nums text-[var(--color-texto)]">
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-[var(--color-texto-fraco)]">Enfermagem</dt>
+                <dd>enfermagem@aurea.local</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-[var(--color-texto-fraco)]">Administração</dt>
+                <dd>admin@aurea.local</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-[var(--color-texto-fraco)]">Paciente</dt>
+                <dd>111.444.777-35</dd>
+              </div>
+              <div className="mt-1 flex flex-wrap justify-between gap-2 border-t border-[var(--color-borda)] pt-2">
+                <dt className="text-[var(--color-texto-fraco)]">Senha</dt>
+                <dd className="font-semibold">aurea-demo-2026</dd>
+              </div>
+            </dl>
+          </div>
+        )}
 
         <p className="text-xs text-[var(--color-texto-fraco)]">
           Monitoramento remoto de toxicidade em quimioterapia.
