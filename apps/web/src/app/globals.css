@@ -10,9 +10,13 @@
   /* --- Paleta: sai da própria escala de classificação do produto --- */
   --color-creme: #fbf9ef;
   --color-creme-fundo: #f4f1e2;
-  --color-verde-profundo: #1c2b21;
-  --color-verde-profundo-alto: #16221a;
-  /* Mesmo verde do campo da hero — o verde do site é um só. */
+  /* Fundo profundo da marca. Era verde (#1c2b21 · #16221a) e virou azul: o
+     verde escuro puxava para a mesma família do `sage`, que é FAIXA CLÍNICA, e
+     campo de marca não pode dividir família com sinal de risco. */
+  --color-azul-profundo: #0e2739;
+  --color-azul-profundo-alto: #091d2a;
+  /* SAGE É COR CLÍNICA (lei inviolável 1, logo abaixo). Não acompanhou a
+     virada para o azul, e não deve: é a faixa "está tudo bem" da escala. */
   --color-sage: #7a8b53;
   --color-sage-claro: #b3bf8c;
   --color-lime: #dff178;
@@ -54,7 +58,7 @@
   --color-superficie: #fbf9ef;
   --color-superficie-baixa: #f4f1e2;
   --color-superficie-alta: #ffffff;
-  --color-superficie-invertida: #1c2b21;
+  --color-superficie-invertida: #0e2739;
 
   /* Traço e divisão — sempre tinta translúcida, nunca cinza morto */
   --color-borda: rgba(20, 32, 26, 0.12);
@@ -173,7 +177,9 @@ body {
 
 ::selection {
   background-color: var(--color-lime);
-  color: var(--color-verde-profundo);
+  /* `tinta` e não o fundo profundo: isto é TEXTO selecionado, e o token de
+     texto é quem responde por ele. */
+  color: var(--color-tinta);
 }
 
 /* Foco visível — requisito de acessibilidade, não estilo.

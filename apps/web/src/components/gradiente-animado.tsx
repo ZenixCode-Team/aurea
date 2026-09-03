@@ -67,18 +67,22 @@ export type NomeDoPreset =
 
 const PRESETS: Record<NomeDoPreset, ParametrosDoPreset> = {
   /**
-   * O verde do site é um só. Estas três cores são as mesmas massas do
-   * `FundoOrganico` na paleta `verde` (#16221a · #46582f · #7a8b53), então a pessoa
-   * que vem da landing reencontra o mesmo campo na porta.
+   * O campo profundo da marca, do `/entrar` para dentro. Era o verde do site
+   * (#16221a · #46582f · #7a8b53) e virou azul junto com a hero: a crista era o
+   * `sage`, que é a FAIXA CLÍNICA "está tudo bem" da escala, e campo decorativo
+   * não pode ser pintado com cor que significa classificação de risco. A troca
+   * fechou essa colisão de graça.
+   *
+   * A crista é o #1374B4 do João em pessoa, no ponto de maior luz do campo.
    *
    * `Edge` e não `Checks`: o painel é alto e estreito, e xadrez em quadro vertical
    * vira textura repetida. Borda dá massa contínua, que é o que o texto por cima
    * precisa. Velocidade 8 — deriva lenta não é gatilho vestibular.
    */
   Aurea: {
-    color1: '#16221a',
-    color2: '#46582f',
-    color3: '#7a8b53',
+    color1: '#091d2a',
+    color2: '#144d71',
+    color3: '#1374B4',
     rotation: -18,
     proportion: 58,
     scale: 0.45,
@@ -94,12 +98,19 @@ const PRESETS: Record<NomeDoPreset, ParametrosDoPreset> = {
   /**
    * A hero é campo CLARO — e isso não é gosto, é estrutura: o texto é branco sem véu
    * por cima, os filetes são brancos, o halo do cursor mescla em `plus-lighter`, e o
-   * `data-cor-fundo="#8fa05e"` pinta o corpo da página do mesmo verde claro enquanto
+   * `data-cor-fundo="#4f9ed0"` pinta o corpo da página do mesmo azul claro enquanto
    * a seção está em quadro. Escurecer o campo aqui quebraria as quatro coisas juntas.
    *
-   * As três massas são a paleta `verde` do `FundoOrganico`, na mesma ordem de
-   * luminância: vale #546638 · base #7a8b53 · crista #cfdaaf. `proportion` 42 mantém
-   * a crista clara em minoria, senão o branco do título perde apoio.
+   * Mesma família azul do preset `Aurea`, dois patamares acima em luminância.
+   * O que continua verde no produto é só o que TEM SIGNIFICADO CLÍNICO: `sage`,
+   * âmbar e terracota da escala, e as paletas de mesmo nome do `FundoOrganico`
+   * na seção "As cores". Nenhuma faixa da triagem é azul, então o campo de marca
+   * deixou de disputar leitura com sinal clínico.
+   *
+   * As três massas guardam a ordem de luminância do preset que substituíram: vale
+   * #0d4d78 · base #1374B4 · crista #a8cfe8. `proportion` 42 mantém a crista clara em
+   * minoria, senão o branco do título perde apoio. O campo azul é cerca de um terço
+   * mais escuro que o verde, então o branco por cima GANHOU contraste, não perdeu.
    *
    * Calibragem: a primeira tentativa foi `scale 0.55 · shapeSize 55 · swirl 70 ·
    * swirlIterations 10 · distortion 30` — mármore denso, bonito e ERRADO aqui: célula
@@ -109,9 +120,9 @@ const PRESETS: Record<NomeDoPreset, ParametrosDoPreset> = {
    * voltar ao mármore denso, é só restaurar os cinco números acima.
    */
   AureaClara: {
-    color1: '#546638',
-    color2: '#7a8b53',
-    color3: '#cfdaaf',
+    color1: '#0d4d78',
+    color2: '#1374B4',
+    color3: '#a8cfe8',
     rotation: 0,
     proportion: 42,
     scale: 0.3,
@@ -268,6 +279,11 @@ function resolverParametros(config: ConfigDoGradiente): ParametrosDoPreset {
   return { ...preset, speed: config.speed ?? preset.speed };
 }
 
+function obterCoresDoRecuo(config: ConfigDoGradiente): [string, string, string] {
+  const { color1, color2, color3 } = resolverParametros(config);
+  return [color1, color2, color3];
+}
+
 function juntarClasses(...partes: Array<string | undefined>): string {
   return partes.filter(Boolean).join(' ');
 }
@@ -290,6 +306,12 @@ export function GradienteAnimado({
      render é proibido, então a atualização mora num efeito sem lista de dependências:
      roda depois de todo render, custa a construção de um objeto pequeno. */
   const refParametros = useRef<ParametrosDoPreset>(resolverParametros(config));
+
+  /* O recuo estático precisa das cores no RENDER, não no laço de animação: ele tem
+     que estar pintado no primeiro quadro, antes de se saber se o WebGL sobe. Resolver
+     de novo aqui custa a construção de um objeto pequeno, o mesmo que o efeito abaixo
+     já faz a cada render. */
+  const coresDoRecuo = obterCoresDoRecuo(config);
 
   useEffect(() => {
     refParametros.current = resolverParametros(config);
@@ -464,7 +486,9 @@ export function GradienteAnimado({
   const classes = juntarClasses('absolute inset-0 overflow-hidden', className);
 
   return (
-    <BarreiraDoGradiente recuo={<RecuoDoGradiente className={classes} />}>
+    <BarreiraDoGradiente
+      recuo={<RecuoDoGradiente className={classes} cores={coresDoRecuo} />}
+    >
       <div
         ref={refContainer}
         className={classes}
@@ -472,7 +496,7 @@ export function GradienteAnimado({
       >
         {/* Base estática, pintada desde o primeiro quadro. O canvas cobre por cima
             quando o WebGL sobe; quando não sobe, é isto que a pessoa vê. */}
-        <RecuoDoGradiente className="absolute inset-0" />
+        <RecuoDoGradiente className="absolute inset-0" cores={coresDoRecuo} />
         <canvas
           ref={refCanvas}
           style={{

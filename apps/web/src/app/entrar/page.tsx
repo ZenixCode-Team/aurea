@@ -113,7 +113,7 @@ function ConteudoDeEntrar() {
           tela de login desenhada de um formulário centralizado genérico. */}
       <div className="flex w-full flex-col justify-between bg-[var(--color-superficie)] px-6 py-8 sm:px-12 lg:w-[46%] lg:max-w-[38rem]">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[0.5rem] bg-[var(--color-verde-profundo)] font-mono text-sm font-semibold text-[var(--color-lime)]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-[0.5rem] bg-[var(--color-azul-profundo)] font-mono text-sm font-semibold text-[var(--color-lime)]">
             A
           </span>
           <span className="text-sm font-semibold tracking-tight text-[var(--color-texto)]">
@@ -233,7 +233,7 @@ function ConteudoDeEntrar() {
       */}
       <aside
         aria-hidden
-        className="relative hidden overflow-hidden bg-[var(--color-verde-profundo)] lg:block lg:flex-1"
+        className="relative hidden overflow-hidden bg-[var(--color-azul-profundo)] lg:block lg:flex-1"
       >
         <GradienteAnimado config={{ preset: 'Aurea' }} />
         <div className="grain absolute inset-0" />

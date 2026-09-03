@@ -58,7 +58,7 @@ export function Botao({
 
   const variantes = {
     solido:
-      "bg-lime text-verde-profundo hover:bg-creme hover:shadow-[0_8px_30px_-8px_rgba(223,241,120,0.6)]",
+      "bg-lime text-tinta hover:bg-creme hover:shadow-[0_8px_30px_-8px_rgba(223,241,120,0.6)]",
     contorno:
       "border border-current/30 text-current hover:border-current/70 hover:bg-current/5",
   } as const;

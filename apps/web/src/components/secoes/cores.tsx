@@ -124,12 +124,12 @@ export function CorVerde() {
       corDeFundo="#7a8b53"
       paleta="verde"
       classes={{
-        secao: "bg-sage text-verde-profundo",
+        secao: "bg-sage text-tinta",
         rotulo: "escuro",
-        titulo: "text-verde-profundo",
-        texto: "text-verde-profundo",
-        textoSuave: "text-verde-profundo/75",
-        divisor: "border-verde-profundo/25",
+        titulo: "text-tinta",
+        texto: "text-tinta",
+        textoSuave: "text-tinta/75",
+        divisor: "border-tinta/25",
       }}
       etapas={[
         {

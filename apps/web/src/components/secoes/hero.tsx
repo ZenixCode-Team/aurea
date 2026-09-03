@@ -47,12 +47,12 @@ export function Hero() {
     <section
       ref={refSecao}
       id="hero"
-      data-cor-fundo="#8fa05e"
+      data-cor-fundo="#4f9ed0"
       className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden"
     >
       {/* Camada 1 — o campo. Fica atrás de tudo.
-          Preset `AureaClara`: mesma paleta de antes (vale · base · crista), shader
-          novo. Claro de propósito — ver o comentário do preset. */}
+          Preset `AureaClara`: azul, e só aqui na hero. Claro de propósito — ver o
+          comentário do preset. */}
       <motion.div style={{ scale: escala }} className="absolute inset-0">
         <GradienteAnimado config={{ preset: "AureaClara" }} />
       </motion.div>

@@ -2,7 +2,7 @@ import { Rotulo, Secao } from "../primitivos";
 import { TituloRevelado } from "../titulo-revelado";
 
 /**
- * Estado (07) — o silêncio, sobre verde profundo.
+ * Estado (07) — o silêncio, sobre o fundo profundo da marca.
  *
  * Esta seção existe porque a ausência de resposta é o indicador mais
  * importante do acompanhamento e o único sem cor própria na escala.
@@ -12,8 +12,8 @@ export function Silencio() {
   return (
     <Secao
       id="silencio"
-      corDeFundo="#1c2b21"
-      className="bg-verde-profundo text-creme"
+      corDeFundo="#0e2739"
+      className="bg-azul-profundo text-creme"
     >
       <div className="grid gap-14 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:gap-20">
         <div data-revelar>

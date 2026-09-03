@@ -13,8 +13,8 @@ const NAVEGACAO = [
  * Cabeçalho da landing — barra flutuante em cápsula.
  *
  * A cápsula resolve um problema que a barra anterior tinha: o corpo da página troca de
- * cor com a rolagem (`data-cor-fundo`, do verde da hero ao creme das seções ao
- * #16221a do rodapé), e uma barra que herda o fundo precisa se redesenhar em cada
+ * cor com a rolagem (`data-cor-fundo`, do azul da hero ao creme das seções ao
+ * #091d2a do rodapé), e uma barra que herda o fundo precisa se redesenhar em cada
  * troca. A cápsula carrega o próprio fundo, então funciona por cima dos três — e é
  * por isso que o estado `rolou` sumiu daqui: não há mais nada que precise saber a cor
  * do que está atrás. O cabeçalho inteiro virou um objeto só.
@@ -43,8 +43,8 @@ export function Cabecalho() {
 
             Translúcida: `bg-white/45` com desfoque forte e saturação puxada para cima.
             A saturação é o que impede o vidro de cinzar — sem ela, o desfoque lava o
-            verde do campo e a cápsula fica com aquele cinza de plástico. Com ela, o
-            fundo continua sendo lido como verde através do vidro.
+            azul do campo e a cápsula fica com aquele cinza de plástico. Com ela, o
+            fundo continua sendo lido como azul através do vidro.
 
             A marca mora DENTRO. Fora dela, flutuava nua sobre o conteúdo que passa por
             baixo do cabeçalho fixo: na primeira seção o filete de divisão cortava o

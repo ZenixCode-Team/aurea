@@ -614,7 +614,7 @@ export function BarraLateral({
       <div className="flex items-center gap-2.5 px-4 py-[0.9375rem]">
         {/* A marca em quadrado: âncora visual fixa, do jeito que Vercel e Mixpanel
             ancoram o topo da barra. */}
-        <span className="flex h-7 w-7 items-center justify-center rounded-[0.5rem] bg-[var(--color-verde-profundo)] font-mono text-xs font-semibold text-[var(--color-lime)]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-[0.5rem] bg-[var(--color-azul-profundo)] font-mono text-xs font-semibold text-[var(--color-lime)]">
           A
         </span>
         <div className="min-w-0">

@@ -136,14 +136,19 @@ interface PropsFundoOrganico {
   className?: string;
 }
 
-export type PaletaNome = "verde" | "ambar" | "vermelho";
+export type PaletaNome = "azul" | "verde" | "ambar" | "vermelho";
 
 /**
  * Presets cromáticos do campo.
  *
- * `verde` é a paleta da hero, e é a MESMA usada na seção Verde — o verde do
- * site é um só. As outras duas repetem a estrutura com o âmbar e o
- * terracota da escala.
+ * `azul` é o campo de MARCA: painéis laterais de consentimento, recuperação de
+ * acesso e primeiro acesso. Existe porque essas três telas usavam a paleta
+ * `verde` como decoração, e `verde` aqui é a faixa "está tudo bem" da escala.
+ * Cor com significado clínico não decora (lei inviolável 1).
+ *
+ * `verde`, `ambar` e `vermelho` são a ESCALA, e vivem na seção "As cores". Não
+ * acompanharam a virada da marca para o azul, e não devem: ali a cor É o
+ * conteúdo.
  *
  * A amplitude das paletas de seção é menor que a da hero de propósito: nas
  * seções o texto é lido por cima do campo, e vale de luminância largo
@@ -161,6 +166,15 @@ export const PALETAS: Record<
     escalas: Quatro;
   }
 > = {
+  azul: {
+    fundo: [0.075, 0.455, 0.706], // #1374B4
+    base1: [0.035, 0.114, 0.165], // #091d2a vale escuro
+    base2: [0.078, 0.302, 0.443], // #144d71
+    base3: [0.659, 0.812, 0.91], // #a8cfe8 crista clara
+    base4: [0.051, 0.212, 0.322], // #0d3652
+    opacidades: [0.95, 0.85, 0.8, 0.7],
+    escalas: [1, 1, 1, 1],
+  },
   verde: {
     fundo: [0.478, 0.545, 0.325], // #7a8b53
     base1: [0.33, 0.4, 0.22], // #546638 vale escuro
@@ -192,6 +206,7 @@ export const PALETAS: Record<
 
 /* Reserva em CSS por paleta, para o caso de o contexto WebGL não existir. */
 const RESERVA: Record<PaletaNome, string> = {
+  azul: "radial-gradient(120% 90% at 30% 65%, #a8cfe8 0%, #1374B4 45%, #091d2a 100%)",
   verde:
     "radial-gradient(120% 90% at 30% 65%, #cfdaaf 0%, #7a8b53 45%, #546638 100%)",
   ambar:

@@ -11,8 +11,8 @@ import { TituloRevelado } from "./titulo-revelado";
 export function Rodape() {
   return (
     <footer
-      data-cor-fundo="#16221a"
-      className="relative overflow-hidden bg-verde-profundo-alto px-6 pb-12 pt-28 text-creme md:px-10 md:pb-14 md:pt-40 lg:px-16"
+      data-cor-fundo="#091d2a"
+      className="relative overflow-hidden bg-azul-profundo-alto px-6 pb-12 pt-28 text-creme md:px-10 md:pb-14 md:pt-40 lg:px-16"
     >
       <div className="mx-auto w-full max-w-[1180px]">
         <div data-revelar>

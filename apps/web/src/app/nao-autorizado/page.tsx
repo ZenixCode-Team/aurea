@@ -21,7 +21,7 @@ export default function NaoAutorizadoPage() {
   return (
     <main className="flex min-h-dvh flex-col bg-[var(--color-superficie)] px-6 py-8 sm:px-12">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[0.5rem] bg-[var(--color-verde-profundo)] font-mono text-sm font-semibold text-[var(--color-lime)]">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[0.5rem] bg-[var(--color-azul-profundo)] font-mono text-sm font-semibold text-[var(--color-lime)]">
           A
         </span>
         <span className="text-sm font-semibold tracking-tight text-[var(--color-texto)]">
