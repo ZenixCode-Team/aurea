@@ -171,9 +171,15 @@ export default function PaginaDeAcompanhamentoDeIntervencoes() {
               descricao="Toda intervenção registrada foi encerrada. Isso é bom, e também vale conferir se alguma deixou de ser registrada."
             />
           ) : (
-            <Tabela rotulo="Intervenções em acompanhamento">
+            <Tabela rotulo="Intervenções em acompanhamento" larguraMinima="58rem">
               <CabecalhoDaTabela
-                colunas={['Paciente', 'Motivo', 'Situação', 'Conduta', 'Registrada']}
+                colunas={[
+                  { rotulo: 'Paciente', largura: '14rem' },
+                  { rotulo: 'Motivo' },
+                  { rotulo: 'Situação', largura: '10rem' },
+                  { rotulo: 'Conduta' },
+                  { rotulo: 'Registrada', largura: '7.5rem' },
+                ]}
               />
               <tbody>
                 {linhas.map((item) => (

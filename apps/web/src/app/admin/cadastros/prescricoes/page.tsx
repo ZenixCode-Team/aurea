@@ -275,8 +275,14 @@ export default function PaginaDePrescricoes() {
             descricao="Medicamento, dose, via e posologia de cada prescrição cadastrada."
             semPadding
           >
-            <Tabela rotulo="Prescrições cadastradas">
-              <CabecalhoDaTabela colunas={['Paciente', 'Medicamento', 'Dose', 'Via', 'Posologia']} />
+            <Tabela rotulo="Prescrições cadastradas" larguraMinima="56rem">
+              <CabecalhoDaTabela colunas={[
+                  { rotulo: 'Paciente', largura: '16rem' },
+                  { rotulo: 'Medicamento', largura: '12rem' },
+                  { rotulo: 'Dose', largura: '6rem' },
+                  { rotulo: 'Via', largura: '6rem' },
+                  { rotulo: 'Posologia' },
+                ]} />
               <tbody>
                 {prescricoes.map((prescricao) => (
                   <LinhaDaTabela key={prescricao.id}>

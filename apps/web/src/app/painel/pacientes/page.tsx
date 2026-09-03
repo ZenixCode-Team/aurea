@@ -127,15 +127,15 @@ export default function PaginaDeTodosOsPacientes() {
               />
             </div>
           ) : (
-            <Tabela rotulo="Todos os pacientes">
+            <Tabela rotulo="Todos os pacientes" larguraMinima="60rem">
               <CabecalhoDaTabela
                 colunas={[
-                  'Paciente',
-                  'Diagnóstico',
-                  'Quem cuida em casa',
-                  'Telefone',
-                  'Última visita',
-                  'Tratamento',
+                  { rotulo: 'Paciente', largura: '14rem' },
+                  { rotulo: 'Diagnóstico' },
+                  { rotulo: 'Quem cuida em casa', largura: '11rem' },
+                  { rotulo: 'Telefone', largura: '9.5rem' },
+                  { rotulo: 'Última visita', largura: '7.5rem' },
+                  { rotulo: 'Tratamento', largura: '9rem' },
                 ]}
               />
               <tbody>

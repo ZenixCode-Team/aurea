@@ -255,14 +255,19 @@ export default function PaginaDeTratamentos() {
             descricao="Paciente, protocolo e estado de cada tratamento cadastrado."
             semPadding
           >
-            <Tabela rotulo="Tratamentos cadastrados">
-              <CabecalhoDaTabela colunas={['Paciente', 'Protocolo', 'Início', 'Estado']} />
+            <Tabela rotulo="Tratamentos cadastrados" larguraMinima="46rem">
+              <CabecalhoDaTabela colunas={[
+                  { rotulo: 'Paciente', largura: '16rem' },
+                  { rotulo: 'Protocolo' },
+                  { rotulo: 'Início', largura: '7rem' },
+                  { rotulo: 'Estado', largura: '10rem' },
+                ]} />
               <tbody>
                 {tratamentos.map((tratamento) => (
                   <LinhaDaTabela key={tratamento.id}>
                     <Celula>{tratamento.pacienteNome}</Celula>
                     <Celula>{tratamento.protocoloNome}</Celula>
-                    <Celula mono>{formatarData(tratamento.iniciadoEm)}</Celula>
+                    <Celula mono inteira>{formatarData(tratamento.iniciadoEm)}</Celula>
                     <Celula>{ROTULO_DO_ESTADO[tratamento.estado]}</Celula>
                   </LinhaDaTabela>
                 ))}

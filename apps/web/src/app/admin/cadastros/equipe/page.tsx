@@ -326,8 +326,13 @@ export default function PaginaDeEquipe() {
             descricao="Função e registro de conselho de cada profissional cadastrado."
             semPadding
           >
-            <Tabela rotulo="Profissionais cadastrados">
-              <CabecalhoDaTabela colunas={['Nome', 'Função', 'Registro do conselho', 'E-mail']} />
+            <Tabela rotulo="Profissionais cadastrados" larguraMinima="52rem">
+              <CabecalhoDaTabela colunas={[
+                  { rotulo: 'Nome', largura: '16rem' },
+                  { rotulo: 'Função', largura: '10rem' },
+                  { rotulo: 'Registro do conselho', largura: '12rem' },
+                  { rotulo: 'E-mail' },
+                ]} />
               <tbody>
                 {profissionais.map((profissional) => (
                   <LinhaDaTabela key={profissional.id}>

@@ -180,9 +180,13 @@ export default function PaginaDeIndicadoresDeToxicidade() {
                   descricao="Nenhuma ocorrência na janela veio de paciente com tratamento ativo."
                 />
               ) : (
-                <Tabela rotulo="Sintoma mais frequente por protocolo">
+                <Tabela rotulo="Sintoma mais frequente por protocolo" larguraMinima="26rem">
                   <CabecalhoDaTabela
-                    colunas={['Protocolo', 'Sintoma mais frequente', 'Sessões']}
+                    colunas={[
+                    { rotulo: 'Protocolo' },
+                    { rotulo: 'Sintoma mais frequente', largura: '11rem' },
+                    { rotulo: 'Sessões', largura: '7.5rem' },
+                  ]}
                   />
                   <tbody>
                     {dados.porProtocolo.map((linha) => (

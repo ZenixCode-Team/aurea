@@ -294,14 +294,19 @@ export default function PaginaDeCiclos() {
             descricao="Sessão realizada e previsão da próxima, por paciente."
             semPadding
           >
-            <Tabela rotulo="Ciclos cadastrados">
-              <CabecalhoDaTabela colunas={['Paciente', 'Número do ciclo', 'Data da sessão', 'Previsão da próxima']} />
+            <Tabela rotulo="Ciclos cadastrados" larguraMinima="44rem">
+              <CabecalhoDaTabela colunas={[
+                  { rotulo: 'Paciente', largura: '16rem' },
+                  { rotulo: 'Número do ciclo', largura: '8rem', alinhamento: 'direita' },
+                  { rotulo: 'Data da sessão', largura: '8rem' },
+                  { rotulo: 'Previsão da próxima' },
+                ]} />
               <tbody>
                 {ciclos.map((ciclo) => (
                   <LinhaDaTabela key={ciclo.id}>
                     <Celula>{ciclo.pacienteNome}</Celula>
-                    <Celula mono>{ciclo.numero}</Celula>
-                    <Celula mono>{formatarData(ciclo.sessaoRealizadaEm)}</Celula>
+                    <Celula mono alinhamento="direita">{ciclo.numero}</Celula>
+                    <Celula mono inteira>{formatarData(ciclo.sessaoRealizadaEm)}</Celula>
                     <Celula mono>
                       {ciclo.previsaoDaProximaSessao
                         ? formatarData(ciclo.previsaoDaProximaSessao)

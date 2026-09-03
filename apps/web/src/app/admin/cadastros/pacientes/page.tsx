@@ -378,14 +378,20 @@ export default function PaginaDePacientes() {
             descricao="Identificação, diagnóstico e protocolo de cada paciente cadastrado."
             semPadding
           >
-            <Tabela rotulo="Pacientes cadastrados">
-              <CabecalhoDaTabela colunas={['Nome', 'CPF', 'Idade', 'Diagnóstico', 'Protocolo']} />
+            <Tabela rotulo="Pacientes cadastrados" larguraMinima="56rem">
+              <CabecalhoDaTabela colunas={[
+                  { rotulo: 'Nome', largura: '16rem' },
+                  { rotulo: 'CPF', largura: '9.5rem' },
+                  { rotulo: 'Idade', largura: '5rem', alinhamento: 'direita' },
+                  { rotulo: 'Diagnóstico' },
+                  { rotulo: 'Protocolo', largura: '12rem' },
+                ]} />
               <tbody>
                 {pacientes.map((paciente) => (
                   <LinhaDaTabela key={paciente.id}>
                     <Celula>{paciente.nome}</Celula>
                     <Celula mono>{formatarCpf(paciente.cpf)}</Celula>
-                    <Celula mono>{calcularIdade(paciente.dataNascimento)}</Celula>
+                    <Celula mono alinhamento="direita">{calcularIdade(paciente.dataNascimento)}</Celula>
                     <Celula>{paciente.diagnostico}</Celula>
                     <Celula>{paciente.protocolo ?? 'não informado'}</Celula>
                   </LinhaDaTabela>
