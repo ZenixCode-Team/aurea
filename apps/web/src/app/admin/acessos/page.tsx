@@ -160,6 +160,7 @@ export default function PaginaDeAcessos() {
             <CartaoDeIndicador
               rotulo="Último registro"
               valor={ultimoAcesso ? formatarDataEHora(ultimoAcesso.aconteceuEm) : 'sem registro'}
+              formato="texto"
               tom="neutro"
             />
           </LinhaDeIndicadores>

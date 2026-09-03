@@ -316,6 +316,7 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
           apoio={
             sessoesOrdenadas[0] ? formatarDataEHora(sessoesOrdenadas[0].dia) : 'nenhuma sessão'
           }
+          formato="texto"
           tom={tomDaClassificacao(sessoesOrdenadas[0]?.classificacao ?? null)}
         />
         <CartaoDeIndicador

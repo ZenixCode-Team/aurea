@@ -42,7 +42,12 @@ export default function PaginaDeConta() {
       />
 
       <LinhaDeIndicadores>
-        <CartaoDeIndicador rotulo="Perfil" valor="Enfermagem" apoio="papel deste acesso" />
+        <CartaoDeIndicador
+          rotulo="Perfil"
+          valor="Enfermagem"
+          apoio="papel deste acesso"
+          formato="texto"
+        />
         <CartaoDeIndicador
           rotulo="Permissões"
           valor={usuario.permissoes.length}
