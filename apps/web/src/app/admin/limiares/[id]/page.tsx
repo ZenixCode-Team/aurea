@@ -255,16 +255,27 @@ export default function PaginaDeDetalheDoConjunto() {
             </div>
           )}
 
+          {/* A procedencia e uma frase, nao um indicador: dentro do cartao ela empurrava
+              a fileira inteira para 250px de altura para caber em quatro linhas. Sai
+              daqui e volta para junto da descricao, que e onde prosa se le. O lugar
+              dela na fileira fica com a contagem de regras, que e medida de verdade. */}
+          <p className="mb-6 max-w-[78ch] text-sm leading-relaxed text-[var(--color-texto-suave)]">
+            <span className="font-medium text-[var(--color-texto)]">Origem: </span>
+            {estado.conjunto.origem}
+          </p>
+
           <LinhaDeIndicadores>
             <CartaoDeIndicador
               rotulo="Estado"
               valor={ROTULO_DO_ESTADO[estado.conjunto.estado]}
+              formato="texto"
               tom="neutro"
             />
-            <CartaoDeIndicador rotulo="Origem" valor={estado.conjunto.origem} tom="neutro" />
+            <CartaoDeIndicador rotulo="Regras" valor={estado.regras.length} tom="neutro" />
             <CartaoDeIndicador
               rotulo="Criado em"
               valor={formatarDataEHora(estado.conjunto.criadoEm)}
+              formato="texto"
               tom="neutro"
             />
             <CartaoDeIndicador
@@ -272,6 +283,7 @@ export default function PaginaDeDetalheDoConjunto() {
               valor={
                 estado.conjunto.publicadoEm ? formatarDataEHora(estado.conjunto.publicadoEm) : 'não publicado'
               }
+              formato="texto"
               tom="neutro"
             />
           </LinhaDeIndicadores>

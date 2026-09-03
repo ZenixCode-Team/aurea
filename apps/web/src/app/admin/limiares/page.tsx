@@ -39,8 +39,14 @@ const ESTILO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
   ARQUIVADO: 'border-[var(--color-borda)] text-[var(--color-texto-fraco)]',
 };
 
+/**
+ * O selo diz o estado; a consequencia clinica vem na linha de apoio embaixo dele.
+ * "Publicado, classificando agora" dentro da pilula davam 30 caracteres em versalete
+ * espacejado numa coluna estreita: quebrava em tres linhas e o `rounded-full` virava
+ * uma bolha preta.
+ */
 const ROTULO_DO_ESTADO: Record<EstadoDoConjunto, string> = {
-  PUBLICADO: 'Publicado, classificando agora',
+  PUBLICADO: 'Publicado',
   RASCUNHO: 'Rascunho',
   ARQUIVADO: 'Arquivado',
 };
@@ -49,7 +55,7 @@ function SeloDoEstado({ estado }: { estado: EstadoDoConjunto }) {
   return (
     <span
       className={juntar(
-        'inline-flex items-center rounded-full border px-2.5 py-0.5',
+        'inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5',
         'font-mono text-[0.6875rem] font-medium uppercase tracking-[0.1em]',
         ESTILO_DO_ESTADO[estado],
       )}
@@ -132,6 +138,7 @@ export default function PaginaDeLimiares() {
               rotulo="Publicado"
               valor={resumo.publicado ? resumo.publicado.versao : 'nenhum'}
               apoio={resumo.publicado ? 'classificando pacientes agora' : 'nenhum conjunto publicado'}
+              formato="texto"
               tom="neutro"
             />
             <CartaoDeIndicador
@@ -151,22 +158,26 @@ export default function PaginaDeLimiares() {
             descricao="Toque na versão para abrir o detalhe, as regras e o histórico de publicação."
             semPadding
           >
-            <Tabela rotulo="Conjuntos de limiares">
+            {/* Descricao e origem sao prosa de 200 caracteres, nao dado tabular. Como
+                colunas proprias elas disputavam a mesma largura das datas e acabavam
+                com duas palavras por linha. Aqui a origem desce como linha secundaria
+                da descricao, as duas ficam presas a duas linhas, e o texto inteiro
+                mora no detalhe do conjunto, que e para onde a linha leva. */}
+            <Tabela rotulo="Conjuntos de limiares" larguraMinima="68rem">
               <CabecalhoDaTabela
                 colunas={[
-                  'Versão',
-                  'Descrição',
-                  'Origem',
-                  'Estado',
-                  'Regras',
-                  'Criado em',
-                  'Publicado em',
+                  { rotulo: 'Versão', largura: '10rem' },
+                  { rotulo: 'Descrição' },
+                  { rotulo: 'Estado', largura: '15rem' },
+                  { rotulo: 'Regras', largura: '6rem', alinhamento: 'direita' },
+                  { rotulo: 'Criado em', largura: '11rem' },
+                  { rotulo: 'Publicado em', largura: '11rem' },
                 ]}
               />
               <tbody>
                 {estado.conjuntos.map((conjunto) => (
                   <LinhaDaTabela key={conjunto.id}>
-                    <Celula mono>
+                    <Celula mono inteira>
                       <Link
                         href={`/admin/limiares/${conjunto.id}`}
                         className="underline decoration-[var(--color-borda-forte)] underline-offset-2 hover:decoration-[var(--color-texto)]"
@@ -175,18 +186,32 @@ export default function PaginaDeLimiares() {
                       </Link>
                     </Celula>
                     <Celula>
-                      <div className="flex flex-col gap-1">
-                        <span>{conjunto.descricao}</span>
+                      <p className="line-clamp-2" title={conjunto.descricao}>
+                        {conjunto.descricao}
+                      </p>
+                      <p
+                        className="mt-1 line-clamp-2 text-xs text-[var(--color-texto-fraco)]"
+                        title={conjunto.origem}
+                      >
+                        Origem: {conjunto.origem}
+                      </p>
+                    </Celula>
+                    <Celula>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <SeloDoEstado estado={conjunto.estado} />
+                        {conjunto.estado === 'PUBLICADO' && (
+                          <span className="text-xs text-[var(--color-texto-fraco)]">
+                            classificando pacientes agora
+                          </span>
+                        )}
                         {!conjunto.validadoClinicamente && <SeloDeNaoValidado />}
                       </div>
                     </Celula>
-                    <Celula>{conjunto.origem}</Celula>
-                    <Celula>
-                      <SeloDoEstado estado={conjunto.estado} />
+                    <Celula mono inteira alinhamento="direita">
+                      {conjunto.quantidadeDeRegras}
                     </Celula>
-                    <Celula mono>{conjunto.quantidadeDeRegras}</Celula>
-                    <Celula mono>{formatarDataEHora(conjunto.criadoEm)}</Celula>
-                    <Celula mono>
+                    <Celula mono inteira>{formatarDataEHora(conjunto.criadoEm)}</Celula>
+                    <Celula mono inteira>
                       {conjunto.publicadoEm ? formatarDataEHora(conjunto.publicadoEm) : 'não publicado'}
                     </Celula>
                   </LinhaDaTabela>

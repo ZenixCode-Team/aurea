@@ -514,8 +514,14 @@ export const CONJUNTOS_SINTETICOS: readonly ConjuntoResumido[] = [
   {
     id: 'cj-1',
     versao: 'rascunho-0',
-    descricao: 'Conjunto inicial de demonstração',
-    origem: 'CTCAE v5.0',
+    /* Texto igual ao do `seed.ts`, e nao um resumo curto. Enquanto o sintetico usava
+       "Conjunto inicial de demonstração" a tela era desenhada contra o caso facil e o
+       estouro de layout so aparecia em producao, com a prosa de 190 caracteres. */
+    descricao:
+      'Conjunto provisório de demonstração. Nenhum corte foi validado clinicamente. Existe para que o sistema ' +
+      'funcione enquanto o protocolo de graduação de toxicidade do serviço não é definido.',
+    origem:
+      'PROVISÓRIO, sem base clínica. Aguarda definição do orientador (CTCAE ou protocolo institucional).',
     estado: 'PUBLICADO',
     validadoClinicamente: false,
     criadoEm: em('2026-06-15'),
