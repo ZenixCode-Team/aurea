@@ -37,6 +37,7 @@
  */
 
 import { PrismaClient, type Prisma } from '@prisma/client';
+import { calcularOcupacao } from '@aurea/contratos';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -720,7 +721,150 @@ async function publicar() {
     }
   }
 
+  await publicarGiroDeCadeiras();
+
   return { criados, atualizados };
+}
+
+/**
+ * Dez cadeiras e o dia delas.
+ *
+ * O cenario e o do print: seis ocupadas, duas em preparo, uma aguardando medicacao,
+ * uma livre. As sessoes sao montadas a partir dos tempos REAIS de cada protocolo, pelo
+ * mesmo `calcularOcupacao` que a tela usa — numeros inventados a mao fariam a barra da
+ * linha do tempo discordar do rodape que a explica.
+ */
+async function publicarGiroDeCadeiras() {
+  const tempos: Record<string, { preparo: number; pre: number; infusao: number; obs: number }> = {
+    'FOLFOX (demonstração)': { preparo: 25, pre: 15, infusao: 150, obs: 20 },
+    'AC-T (demonstração)': { preparo: 20, pre: 30, infusao: 90, obs: 30 },
+    'Pembrolizumabe (demonstração)': { preparo: 20, pre: 0, infusao: 30, obs: 60 },
+  };
+
+  for (const [nome, t] of Object.entries(tempos)) {
+    await prisma.protocolo.updateMany({
+      where: { nome },
+      data: {
+        tempoDePreparoEmMinutos: t.preparo,
+        tempoDePreMedicacaoEmMinutos: t.pre,
+        tempoDeInfusaoEmMinutos: t.infusao,
+        tempoDeObservacaoEmMinutos: t.obs,
+      },
+    });
+  }
+
+  for (let numero = 1; numero <= 10; numero += 1) {
+    await prisma.cadeira.upsert({
+      where: { numero },
+      update: { ativa: true },
+      create: { numero },
+    });
+  }
+
+  const cadeiras = await prisma.cadeira.findMany({ orderBy: { numero: 'asc' } });
+
+  const pacientes = await prisma.paciente.findMany({
+    where: { tratamentos: { some: { encerradoEm: null } } },
+    take: 9,
+    orderBy: { nome: 'asc' },
+    select: {
+      id: true,
+      tratamentos: {
+        where: { encerradoEm: null },
+        take: 1,
+        select: {
+          id: true,
+          protocolo: {
+            select: {
+              tempoDePreparoEmMinutos: true,
+              tempoDePreMedicacaoEmMinutos: true,
+              tempoDeInfusaoEmMinutos: true,
+              tempoDeObservacaoEmMinutos: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  /* Recria so as sessoes de HOJE: rodar duas vezes no mesmo dia nao pode empilhar
+     ocupacao em cima de ocupacao, e o historico de outros dias fica intacto. */
+  const inicioDeHoje = new Date();
+  inicioDeHoje.setHours(0, 0, 0, 0);
+  const fimDeHoje = new Date(inicioDeHoje.getTime() + 24 * 60 * 60 * 1000);
+  await prisma.sessaoDeInfusao.deleteMany({
+    where: { previsaoDeInicio: { gte: inicioDeHoje, lt: fimDeHoje } },
+  });
+
+  const ESTADOS = [
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_OBSERVACAO',
+    'EM_PREPARO',
+    'EM_PREPARO',
+    'AGUARDANDO_MEDICACAO',
+  ] as const;
+
+  for (const [indice, paciente] of pacientes.entries()) {
+    const tratamento = paciente.tratamentos[0];
+    const cadeira = cadeiras[indice];
+    if (!tratamento || !cadeira || indice >= ESTADOS.length) continue;
+
+    const ocupacao = calcularOcupacao(tratamento.protocolo, 'BAIXO');
+
+    /* Escalonado: cada cadeira comeca uma faixa depois da anterior, o que produz a
+       escada que a linha do tempo mostra. */
+    const inicio = new Date(inicioDeHoje);
+    inicio.setHours(8 + Math.floor(indice / 3), (indice % 3) * 20, 0, 0);
+
+    const estado = ESTADOS[indice];
+
+    await prisma.sessaoDeInfusao.create({
+      data: {
+        pacienteId: paciente.id,
+        tratamentoId: tratamento.id,
+        cadeiraId: cadeira.id,
+        previsaoDeInicio: inicio,
+        previsaoDeFim: new Date(inicio.getTime() + ocupacao.total * 60000),
+        estado,
+        /* Atraso de verdade: o inicio real vem alguns minutos depois do previsto, e e
+           dele que sai o "atraso operacional acumulado" do painel. */
+        inicioReal:
+          estado === 'AGUARDANDO_MEDICACAO'
+            ? null
+            : new Date(inicio.getTime() + (3 + indice) * 60000),
+        medicacaoLiberadaEm:
+          estado === 'AGUARDANDO_MEDICACAO' ? null : new Date(inicio.getTime()),
+      },
+    });
+  }
+
+  /* Duas sessoes ja encerradas, para o tempo medio de ocupacao ter base. */
+  for (const [i, paciente] of pacientes.slice(0, 2).entries()) {
+    const tratamento = paciente.tratamentos[0];
+    const cadeira = cadeiras[i];
+    if (!tratamento || !cadeira) continue;
+
+    const inicio = new Date(inicioDeHoje);
+    inicio.setHours(7, 0, 0, 0);
+    const ocupacao = calcularOcupacao(tratamento.protocolo, 'BAIXO');
+
+    await prisma.sessaoDeInfusao.create({
+      data: {
+        pacienteId: paciente.id,
+        tratamentoId: tratamento.id,
+        cadeiraId: cadeira.id,
+        previsaoDeInicio: inicio,
+        previsaoDeFim: new Date(inicio.getTime() + ocupacao.total * 60000),
+        inicioReal: new Date(inicio.getTime() + 5 * 60000),
+        fimReal: new Date(inicio.getTime() + (ocupacao.total + 8) * 60000),
+        estado: 'CONCLUIDA',
+      },
+    });
+  }
 }
 
 publicar()

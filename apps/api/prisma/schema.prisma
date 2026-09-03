@@ -247,6 +247,7 @@ model Paciente {
   barreiras             BarreiraDoPaciente[]
   pendencias            PendenciaPreTratamento[]
   internacoes           Internacao[]
+  sessoesDeInfusao      SessaoDeInfusao[]
   tratamentos           Tratamento[]
   prescricoes           Prescricao[]
   sessoesDeTriagem      SessaoDeTriagem[]
@@ -413,6 +414,72 @@ model Internacao {
   @@map("internacoes")
 }
 
+/// --- Giro de cadeiras: capacidade assistencial real ---------------------------
+
+/// A poltrona de infusão. É o recurso escasso do ambulatório, e é dele que sai a
+/// pergunta que o agendamento convencional não responde: quando esta cadeira estará
+/// EFETIVAMENTE livre para o próximo paciente.
+model Cadeira {
+  id         String   @id @default(uuid())
+  numero     Int      @unique
+  /// Cadeira desativada some do cálculo de capacidade sem sumir do histórico: sessão
+  /// antiga precisa continuar sabendo onde aconteceu.
+  ativa      Boolean  @default(true)
+  observacao String?  @db.VarChar(180)
+  criadaEm   DateTime @default(now())
+
+  sessoes SessaoDeInfusao[]
+
+  @@map("cadeiras")
+}
+
+/// O que a sessão está fazendo agora. A diferença entre estes estados é a diferença
+/// entre "horário livre" e "capacidade real": cadeira em observação está ocupada e não
+/// aparece em nenhuma agenda; cadeira aguardando medicação está parada e ninguém sabe.
+enum EstadoDaSessaoDeInfusao {
+  AGENDADA
+  AGUARDANDO_MEDICACAO
+  EM_PREPARO
+  EM_INFUSAO
+  EM_OBSERVACAO
+  CONCLUIDA
+  CANCELADA
+}
+
+/// Uma ocupação de cadeira, do preparo à liberação.
+///
+/// NÃO é `EventoDeAgenda`. Aquele modelo guarda um instante — "quimioterapia às 8h" —
+/// e instante não ocupa recurso. Este guarda janela, cadeira e estado, que é o
+/// mínimo para responder quantas cadeiras existem livres entre 15h10 e 17h.
+model SessaoDeInfusao {
+  id           String                  @id @default(uuid())
+  pacienteId   String
+  cadeiraId    String?
+  tratamentoId String?
+  /// Previsão calculada por `giro-de-cadeiras.ts` a partir dos tempos do protocolo.
+  previsaoDeInicio DateTime
+  previsaoDeFim    DateTime
+  /// O que de fato aconteceu. A diferença entre previsto e real É o atraso
+  /// operacional acumulado, e ela só existe porque os quatro campos são separados.
+  inicioReal   DateTime?
+  fimReal      DateTime?
+  estado       EstadoDaSessaoDeInfusao @default(AGENDADA)
+  /// Quando a farmácia liberou. Nulo com estado AGUARDANDO_MEDICACAO é exatamente o
+  /// caso que trava a cadeira sem aparecer em lugar nenhum.
+  medicacaoLiberadaEm DateTime?
+  observacao   String?                 @db.VarChar(255)
+  criadaEm     DateTime                @default(now())
+  atualizadaEm DateTime                @updatedAt
+
+  paciente   Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  cadeira    Cadeira?    @relation(fields: [cadeiraId], references: [id], onDelete: SetNull)
+  tratamento Tratamento? @relation(fields: [tratamentoId], references: [id], onDelete: SetNull)
+
+  @@index([previsaoDeInicio, estado])
+  @@index([cadeiraId, previsaoDeInicio])
+  @@map("sessoes_de_infusao")
+}
+
 model Protocolo {
   id        String   @id @default(uuid())
   nome      String   @unique @db.VarChar(120)
@@ -426,6 +493,14 @@ model Protocolo {
   altoRiscoDeNeutropenia Boolean @default(false)
   bombaInfusora         Boolean @default(false)
   tratamentoOral        Boolean @default(false)
+  /// --- Tempos que compõem a ocupação da cadeira ---------------------------
+  /// Somados, dão quanto tempo a poltrona fica indisponível. O agendamento
+  /// convencional enxerga só `tempoDeInfusao` e é por isso que a agenda dele não
+  /// bate com a realidade do ambulatório.
+  tempoDePreparoEmMinutos    Int @default(20)
+  tempoDePreMedicacaoEmMinutos Int @default(0)
+  tempoDeInfusaoEmMinutos    Int @default(120)
+  tempoDeObservacaoEmMinutos Int @default(0)
   criadoEm  DateTime @default(now())
 
   tratamentos Tratamento[]
@@ -456,6 +531,7 @@ model Tratamento {
   enfermeiroResponsavel Profissional? @relation("EnfermeiroResponsavel", fields: [enfermeiroResponsavelId], references: [id], onDelete: SetNull)
 
   ciclos Ciclo[]
+  sessoesDeInfusao SessaoDeInfusao[]
 
   @@index([pacienteId, encerradoEm])
   @@map("tratamentos")

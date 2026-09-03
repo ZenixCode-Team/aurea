@@ -30,6 +30,7 @@ const SECOES: readonly SecaoDeNavegacao[] = [
       { href: '/painel/pacientes', rotulo: 'Todos os pacientes', icone: 'cadastro' as const },
       { href: '/painel/intervencoes', rotulo: 'Intervenções', icone: 'contato' as const },
       { href: '/painel/contatos', rotulo: 'Solicitações de contato', icone: 'contato' as const },
+      { href: '/painel/cadeiras', rotulo: 'Giro de cadeiras', icone: 'pacientes' as const },
       { href: '/painel/toxicidade', rotulo: 'Toxicidade', icone: 'cadastro' as const },
       { href: '/painel/navegacao', rotulo: 'Navegação', icone: 'cadastro' as const },
     ],

@@ -32,6 +32,7 @@ import {
   REGISTRO_DE_ACESSOS_SINTETICO,
   REGRAS_SINTETICAS,
   SOLICITACOES_DO_PACIENTE_SINTETICAS,
+  GIRO_DE_CADEIRAS_SINTETICO,
   INDICADORES_DE_TOXICIDADE_SINTETICOS,
   NAVEGACAO_SINTETICA,
   INTERVENCOES_SINTETICAS,
@@ -65,6 +66,7 @@ import type {
   SolicitacaoDeContato,
   AcompanhamentoDeIntervencoes,
   IndicadoresDeToxicidade,
+  PainelDeCadeiras,
   PainelDeNavegacao,
   SolicitacaoNaFila,
   Verbete,
@@ -777,6 +779,12 @@ export async function salvarContextoSocial(
     metodo: 'PATCH',
     corpo: contexto,
   });
+}
+
+/** Giro de cadeiras. Capacidade real, não horário livre. */
+export async function buscarGiroDeCadeiras(): Promise<PainelDeCadeiras> {
+  if (!usandoApi) return comAtraso(GIRO_DE_CADEIRAS_SINTETICO);
+  return chamar<PainelDeCadeiras>('/painel/cadeiras');
 }
 
 export async function buscarFilaDeContatos(): Promise<readonly SolicitacaoNaFila[]> {

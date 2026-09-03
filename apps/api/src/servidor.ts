@@ -8,6 +8,7 @@ import { autenticacao } from './autenticacao/plugin.js';
 import { rotasDeAutenticacao } from './rotas/autenticacao.js';
 import { rotasDeTriagem } from './rotas/triagem.js';
 import { rotasDoPainel } from './rotas/painel.js';
+import { rotasDeCadeiras } from './rotas/cadeiras.js';
 import { rotasDeConta } from './rotas/conta.js';
 import { rotasDeAdmin } from './rotas/admin.js';
 import { rotasDoPaciente } from './rotas/paciente.js';
@@ -86,6 +87,7 @@ export async function montarServidor() {
   await app.register(rotasDeConta);
   await app.register(rotasDeTriagem);
   await app.register(rotasDoPainel);
+  await app.register(rotasDeCadeiras);
   await app.register(rotasDeAdmin);
   await app.register(rotasDoPaciente);
   await app.register(rotasDeAtendimento);

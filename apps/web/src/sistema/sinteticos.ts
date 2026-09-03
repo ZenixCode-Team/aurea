@@ -12,6 +12,7 @@
 
 import type {
   AcompanhamentoDeIntervencoes,
+  PainelDeCadeiras,
   PainelDeNavegacao,
   IndicadoresDeToxicidade,
   CartaoDoPainel,
@@ -682,3 +683,116 @@ export const NAVEGACAO_SINTETICA: PainelDeNavegacao = {
     barreirasAbertas: 8,
   },
 };
+
+/**
+ * Giro de cadeiras no espelho — dez poltronas, exatamente o exemplo dos prints.
+ *
+ * Os horários são relativos ao dia em que a tela abre, e não fixos: espelho com data
+ * cravada mostra "ocupação de 3 de setembro" em qualquer demonstração futura.
+ */
+function horaDeHoje(hora: number, minuto = 0): string {
+  const d = new Date();
+  d.setHours(hora, minuto, 0, 0);
+  return d.toISOString();
+}
+
+export const GIRO_DE_CADEIRAS_SINTETICO: PainelDeCadeiras = (() => {
+  const cadeiras = Array.from({ length: 10 }, (_, i) => ({
+    id: `cad-${i + 1}`,
+    numero: i + 1,
+    ativa: true,
+  }));
+
+  /* Seis ocupadas, duas em preparo, uma aguardando medicação, uma livre: os números
+     do print, para a demonstração bater com o que foi desenhado. */
+  const estados = [
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_INFUSAO',
+    'EM_OBSERVACAO',
+    'EM_PREPARO',
+    'EM_PREPARO',
+    'AGUARDANDO_MEDICACAO',
+  ] as const;
+
+  const nomes = [
+    'Marisa Andrade (fictícia)',
+    'Rubens Tavares (fictício)',
+    'Otávio Lins (fictício)',
+    'Ivone Prado (fictícia)',
+    'Gilmar Peçanha (fictício)',
+    'Sônia Vasques (fictícia)',
+    'Neusa Correia (fictícia)',
+    'Hélio Braga (fictício)',
+    'Denise Fontes (fictícia)',
+  ];
+
+  const sessoesDoDia = estados.map((estado, i) => ({
+    id: `si-${i + 1}`,
+    paciente: nomes[i] ?? 'Paciente (fictício)',
+    cadeiraId: `cad-${i + 1}`,
+    protocolo: i % 2 === 0 ? 'FOLFOX (demonstração)' : 'AC-T (demonstração)',
+    estado,
+    previsaoDeInicio: horaDeHoje(8 + (i % 3) * 2, (i % 2) * 20),
+    previsaoDeFim: horaDeHoje(10 + (i % 3) * 2, 20 + (i % 2) * 10),
+    inicioReal: horaDeHoje(8 + (i % 3) * 2, (i % 2) * 20 + 7),
+    fimReal: null,
+    medicacaoLiberadaEm: null,
+  }));
+
+  const porCadeira = cadeiras.map((cadeira, i) => {
+    const sessao = sessoesDoDia[i] ?? null;
+    const estado = !sessao
+      ? ('DISPONIVEL' as const)
+      : sessao.estado === 'EM_INFUSAO'
+        ? ('OCUPADA' as const)
+        : sessao.estado === 'EM_PREPARO'
+          ? ('EM_PREPARO' as const)
+          : sessao.estado === 'EM_OBSERVACAO'
+            ? ('EM_OBSERVACAO' as const)
+            : ('AGUARDANDO_MEDICACAO' as const);
+
+    return {
+      cadeira,
+      estado,
+      sessaoAtual: sessao,
+      livreEm: sessao ? sessao.previsaoDeFim : null,
+    };
+  });
+
+  return {
+    giro: {
+      total: 10,
+      ocupadas: 5,
+      emPreparo: 2,
+      aguardandoMedicacao: 1,
+      emObservacao: 1,
+      disponiveis: 1,
+      taxaDeOcupacao: 90,
+      tempoMedioDeOcupacaoEmMinutos: 138,
+      proximaCadeiraLivreEm: horaDeHoje(14, 35),
+      atrasoAcumuladoEmMinutos: 27,
+      porCadeira,
+    },
+    janelasLivres: [
+      {
+        cadeiraId: 'cad-10',
+        numero: 10,
+        de: horaDeHoje(15, 10),
+        ate: horaDeHoje(19, 0),
+        minutos: 230,
+      },
+      {
+        cadeiraId: 'cad-6',
+        numero: 6,
+        de: horaDeHoje(16, 30),
+        ate: horaDeHoje(19, 0),
+        minutos: 150,
+      },
+    ],
+    sessoesDoDia,
+    expediente: { abertura: horaDeHoje(7, 0), fechamento: horaDeHoje(19, 0) },
+  };
+})();

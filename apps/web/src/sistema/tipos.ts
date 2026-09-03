@@ -11,7 +11,10 @@ import type {
   AtividadeFisica,
   Classificacao,
   FaixaDeSilencio,
+  GiroDeCadeiras,
   IndicadoresDeToxicidade,
+  JanelaLivre,
+  SessaoNaCadeira,
   MotivoDaPrioridade,
   NivelDePrioridade,
   ResultadoDaEstratificacao,
@@ -27,7 +30,10 @@ export type {
   AtividadeFisica,
   Classificacao,
   FaixaDeSilencio,
+  GiroDeCadeiras,
   IndicadoresDeToxicidade,
+  JanelaLivre,
+  SessaoNaCadeira,
   MotivoDaPrioridade,
   NivelDePrioridade,
   ResultadoDaEstratificacao,
@@ -639,4 +645,13 @@ export interface PainelDeNavegacao {
     readonly pendenciasParaAmanha: number;
     readonly barreirasAbertas: number;
   };
+}
+
+
+/** O painel do giro de cadeiras, como a API o devolve. */
+export interface PainelDeCadeiras {
+  readonly giro: GiroDeCadeiras;
+  readonly janelasLivres: readonly JanelaLivre[];
+  readonly sessoesDoDia: readonly SessaoNaCadeira[];
+  readonly expediente: { readonly abertura: string; readonly fechamento: string };
 }

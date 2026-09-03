@@ -7,3 +7,4 @@ export * from './historia-do-paciente.js';
 export * from './fila-de-prioridades.js';
 export * from './indicadores-de-toxicidade.js';
 export * from './estratificacao-de-risco.js';
+export * from './giro-de-cadeiras.js';
