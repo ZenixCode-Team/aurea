@@ -124,6 +124,24 @@ export function diaCivilDeColunaDeData(coluna: Date): number {
 }
 
 /**
+ * O valor que uma coluna `@db.Date` teria para o dia civil de `momento`, deslocado em
+ * `dias`.
+ *
+ * Existe porque comparar coluna de data com instante é a mesma armadilha descrita
+ * acima, agora pelo lado da CONSULTA. Um `where` montado com `new Date(agora + 1 dia)`
+ * pergunta pelo dia errado sempre que o fuso do serviço está atrás de UTC — que é o
+ * caso do Brasil inteiro, o dia todo. O defeito é silencioso: a consulta roda, devolve
+ * zero linhas, e a tela mostra "nenhuma pendência para amanhã" com pendências
+ * cadastradas.
+ *
+ * Devolve meia-noite UTC, que é exatamente como o Prisma grava e lê `DATE`.
+ */
+export function colunaDeDataDoDiaCivil(momento: Date, dias = 0): Date {
+  const { ano, mes, dia } = partesNoFuso(momento);
+  return new Date(Date.UTC(ano, mes - 1, dia + dias, 0, 0, 0));
+}
+
+/**
  * Dia do ciclo: quantos dias de calendário desde a sessão de quimioterapia.
  * O dia da sessão é o dia 0.
  *

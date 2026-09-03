@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   calcularDiaDoCiclo,
+  colunaDeDataDoDiaCivil,
   diaCivil,
   diaCivilDeColunaDeData,
   diasDeDiferenca,
@@ -134,5 +135,31 @@ describe('calcularDiaDoCiclo', () => {
 
     expect(new Set(dias).size).toBe(1);
     expect(dias[0]).toBe(9);
+  });
+});
+
+describe('colunaDeDataDoDiaCivil', () => {
+  /* O defeito real: às 22h de 2 de setembro em São Paulo, `agora` já é dia 3 em UTC.
+     Aritmética de instante perguntaria pelo dia 4, e a pendência do dia 3 sumiria da
+     tela sem erro nenhum. */
+  it('usa o dia civil do fuso do serviço, não o dia UTC', () => {
+    const noiteEmSaoPaulo = new Date('2026-09-03T01:30:00.000Z'); // 22h30 de 02/09
+    expect(colunaDeDataDoDiaCivil(noiteEmSaoPaulo, 1).toISOString()).toBe(
+      '2026-09-03T00:00:00.000Z',
+    );
+  });
+
+  it('devolve meia-noite UTC, que é como o Prisma grava DATE', () => {
+    const meioDia = new Date('2026-09-03T15:00:00.000Z');
+    const coluna = colunaDeDataDoDiaCivil(meioDia);
+    expect(coluna.getUTCHours()).toBe(0);
+    expect(coluna.toISOString()).toBe('2026-09-03T00:00:00.000Z');
+  });
+
+  it('atravessa a virada de mês', () => {
+    const fimDoMes = new Date('2026-09-30T15:00:00.000Z');
+    expect(colunaDeDataDoDiaCivil(fimDoMes, 1).toISOString()).toBe(
+      '2026-10-01T00:00:00.000Z',
+    );
   });
 });
