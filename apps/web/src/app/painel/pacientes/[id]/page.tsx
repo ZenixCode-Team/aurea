@@ -25,6 +25,7 @@ import {
   Celula,
   EstadoVazio,
   LinhaDaTabela,
+  LinkComoBotao,
   Medida,
   SeloDeNaoValidado,
   SeloDeRisco,
@@ -32,6 +33,11 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { Modal } from '@/componentes/sistema/modal';
+import {
+  completudeDaHistoria,
+  montarHistoriaDoPaciente,
+  type DadosDaHistoria,
+} from '@aurea/contratos';
 import {
   ErroDaFonte,
   buscarHistoricoNoPainel,
@@ -54,15 +60,22 @@ import type {
   SessaoNoHistorico,
   SituacaoDoSintoma,
 } from '@/sistema/tipos';
+import { ROTULO_DO_DESFECHO } from '@/sistema/formato';
 
-const ROTULO_DA_SITUACAO_DO_SINTOMA: Record<SituacaoDoSintoma, string> = {
-  RESOLVIDO: 'Resolvido',
-  EM_ACOMPANHAMENTO: 'Em acompanhamento',
-};
+const ROTULO_DA_SITUACAO_DO_SINTOMA: Record<SituacaoDoSintoma, string> =
+  ROTULO_DO_DESFECHO;
 
-/* Só estas duas: é o que `POST /painel/sessoes/:id/intervencoes` aceita. Oferecer
-   opção que o servidor recusa é fazer o profissional descobrir isso no erro. */
-const OPCOES_DE_SITUACAO: readonly SituacaoDoSintoma[] = ['RESOLVIDO', 'EM_ACOMPANHAMENTO'];
+/* Exatamente o que `POST /painel/sessoes/:id/intervencoes` aceita. Oferecer opção que
+   o servidor recusa é fazer o profissional descobrir isso no erro. A ordem é a da
+   conversa real: primeiro o que resolveu, depois o que continua aberto, por último o
+   encaminhamento — que é o desfecho mais grave e o menos frequente. */
+const OPCOES_DE_SITUACAO: readonly SituacaoDoSintoma[] = [
+  'RESOLVIDO',
+  'EM_ACOMPANHAMENTO',
+  'AGUARDANDO_RETORNO',
+  'REAVALIAR',
+  'ENCAMINHADO_AO_PA',
+];
 
 /** O tom do indicador de classificação. Fora daqui, cor de risco não decora nada. */
 function tomDaClassificacao(
@@ -279,6 +292,17 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
         acao={acaoDeVoltar}
       />
 
+      {/* O registro operacional fica a um clique do prontuário: quem descobre a
+          barreira está aqui, olhando o histórico, não numa tela de administração. */}
+      <div className="mb-4 flex justify-end">
+        <LinkComoBotao
+          href={`/painel/pacientes/${historico.paciente.id}/registro`}
+          variante="secundario"
+        >
+          Registro operacional
+        </LinkComoBotao>
+      </div>
+
       <LinhaDeIndicadores>
         {/* A classificação mais recente é o único indicador desta tela que pode usar
             a cor da escala — aqui ela significa exatamente o que deve significar. */}
@@ -310,6 +334,8 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
         />
       </LinhaDeIndicadores>
 
+      <BreveHistoria historico={historico} />
+
       {/* Cadastro e receitas antes do histórico de sessões.
           A ordem responde ao que a enfermagem faz de verdade: ela abre esta tela com o
           telefone na mão. Quem é, quem cuida, o que a pessoa toma — e só então o que
@@ -334,6 +360,42 @@ function ConteudoDoHistorico({ pacienteId: id }: { pacienteId: string }) {
             />
             <LinhaDeDado rotulo="Protocolo" valor={historico.paciente.protocolo} />
           </dl>
+
+          {/* Alergias. A API já mandava este dado e a tela o descartava — a mesma
+              classe de defeito das tarefas 065 e 067, mas nesta o custo é maior:
+              alergia que ninguém lê é alergia que ninguém respeita na hora de
+              orientar medicação por telefone. */}
+          <div className="mt-5 border-t border-[var(--color-borda)] pt-4">
+            <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.08em] text-[var(--color-texto-fraco)]">
+              Alergias
+            </p>
+            {(historico.paciente.alergias ?? []).length === 0 ? (
+              <p className="text-sm text-[var(--color-texto-fraco)]">
+                Nenhuma alergia registrada. Ausência de registro não é ausência de
+                alergia.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {(historico.paciente.alergias ?? []).map((alergia) => (
+                  <li
+                    key={alergia.descricao}
+                    className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+                  >
+                    <span className="text-[var(--color-texto)]">{alergia.descricao}</span>
+                    {/* Confirmada ou não dito por palavra, nunca por cor: a cor desta
+                        tela pertence à escala de risco. */}
+                    <span className="text-xs text-[var(--color-texto-fraco)]">
+                      {alergia.confirmadaEm
+                        ? 'confirmada pela equipe'
+                        : alergia.origem === 'PACIENTE'
+                          ? 'relatada pelo paciente'
+                          : 'não confirmada'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <div className="mt-5 border-t border-[var(--color-borda)] pt-4">
             <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.08em] text-[var(--color-texto-fraco)]">
@@ -692,6 +754,90 @@ function ModalDeIntervencao({
 }
 
 /** Uma linha de `rótulo: valor` do cartão de cadastro. Vazio vira travessão, nunca some. */
+/**
+ * A breve história — quem é a pessoa, antes do que ela respondeu ontem.
+ *
+ * O texto NÃO é escrito aqui: vem de `montarHistoriaDoPaciente`, função pura em
+ * `@aurea/contratos`, que só monta frase a partir de campo cadastrado. Esta camada
+ * decide layout e mais nada, e é de propósito: no dia em que existir exportação de
+ * prontuário, o servidor produz o mesmo texto sem passar por React.
+ *
+ * A barra de completude existe porque duas linhas de história podem ser lidas como
+ * "esta pessoa não tem nada relevante", quando o que houve foi cadastro pela metade.
+ * Dizer quanto falta é a diferença entre um retrato e uma lacuna disfarçada.
+ */
+function BreveHistoria({ historico }: { historico: HistoricoDoPaciente }) {
+  const p = historico.paciente;
+
+  const dados: DadosDaHistoria = {
+    nome: p.nome,
+    sexo: p.sexo ?? null,
+    dataNascimento: p.dataNascimento ?? null,
+    diagnostico: p.diagnostico,
+    protocolo: p.protocolo,
+    numeroDoCiclo: p.numeroDoCiclo ?? null,
+    diaDoCiclo: p.diaDoCiclo,
+    /* Só o que a pessoa TOMA hoje. Receita encerrada é contexto e vive no bloco de
+       receitas; misturá-la aqui faria a história afirmar um uso que acabou. */
+    medicamentosEmUso: (historico.prescricoes ?? [])
+      .filter((prescricao) => prescricao.emVigor)
+      .map((prescricao) => ({
+        nome: prescricao.medicamento,
+        posologia: prescricao.posologia,
+      })),
+    alergias: (p.alergias ?? []).map((a) => ({
+      descricao: a.descricao,
+      confirmada: a.confirmadaEm != null,
+    })),
+    comorbidades: (p.comorbidades ?? []).map((c) => ({
+      descricao: c.descricao,
+      confirmada: c.confirmadaEm != null,
+    })),
+    tabagismo: p.tabagismo ?? null,
+    parouDeFumarEm: p.parouDeFumarEm ?? null,
+    atividadeFisica: p.atividadeFisica ?? null,
+    descricaoDaAtividade: p.descricaoDaAtividade ?? null,
+    consumoDeAlcool: p.consumoDeAlcool ?? null,
+    habitoIntestinalBasal: p.habitoIntestinalBasal ?? null,
+  };
+
+  const trechos = montarHistoriaDoPaciente(dados);
+  const completude = completudeDaHistoria(dados);
+  const percentual = Math.round(completude * 100);
+
+  return (
+    <div className="mb-6">
+      <Bloco
+        titulo="Quem é esta pessoa"
+        descricao="Montado do cadastro. Nada aqui é inferido: campo em branco vira silêncio, não suposição."
+      >
+        <div className="flex flex-col gap-2.5">
+          {trechos.map((trecho) => (
+            <p
+              key={trecho.assunto}
+              className={juntar(
+                'text-[0.9375rem] leading-relaxed',
+                trecho.destacar
+                  ? 'font-medium text-[var(--color-texto)]'
+                  : 'text-[var(--color-texto-suave)]',
+              )}
+            >
+              {trecho.texto}
+            </p>
+          ))}
+        </div>
+
+        {percentual < 100 && (
+          <p className="mt-4 border-t border-[var(--color-borda)] pt-3 text-xs text-[var(--color-texto-fraco)]">
+            Cadastro {percentual}% preenchido. O que falta não aparece acima porque
+            ainda não foi perguntado, e não porque a resposta seja negativa.
+          </p>
+        )}
+      </Bloco>
+    </div>
+  );
+}
+
 function LinhaDeDado({ rotulo, valor }: { rotulo: string; valor: string | null }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
