@@ -22,7 +22,7 @@
  */
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { juntar } from './juntar';
 import type {
   ButtonHTMLAttributes,
@@ -30,7 +30,7 @@ import type {
   MouseEventHandler,
   ReactNode,
 } from 'react';
-import { ROTULO_DA_SITUACAO } from '@/sistema/formato';
+import { ROTULO_DA_SITUACAO, ehSomenteData, formatarData, formatarHora } from '@/sistema/formato';
 import type { Classificacao, SituacaoNoPainel } from '@/sistema/tipos';
 
 export { juntar };
@@ -405,16 +405,105 @@ export function Tabela({
    */
   larguraMinima?: string;
 }) {
+  const referencia = useRef<HTMLDivElement>(null);
+  const [sobra, setSobra] = useState({ antes: false, depois: false });
+
+  /**
+   * Rolagem sem indicio nenhum le como tela cortada, e nao como tela que rola.
+   *
+   * Dez tabelas rolam na horizontal no celular. Sem marca na borda, a pessoa ve a
+   * coluna terminar no meio e conclui que o sistema esta quebrado, que foi a
+   * primeira leitura de quem abriu a tela de conjuntos. O desvanecer aparece so no
+   * lado que ainda tem conteudo, entao ele tambem diz PARA QUE LADO arrastar.
+   *
+   * O `tabIndex` acompanha: regiao que rola precisa ser alcancavel pelo teclado, e
+   * so entra na ordem de tabulacao quando existe rolagem de fato.
+   */
+  useEffect(() => {
+    const caixa = referencia.current;
+    if (!caixa) return;
+    const tabela = caixa.firstElementChild;
+
+    /* Arrow, e nao `function medir()`: declaracao de funcao e hoisted, e o
+       compilador nao consegue provar que ela so roda depois da guarda de `caixa`,
+       entao ele descarta o estreitamento e reclama de null em cada acesso. */
+    const medir = () => {
+      const alcance = caixa.scrollWidth - caixa.clientWidth;
+      setSobra({
+        antes: caixa.scrollLeft > 1,
+        depois: alcance > 1 && caixa.scrollLeft < alcance - 1,
+      });
+    };
+
+    medir();
+    caixa.addEventListener('scroll', medir, { passive: true });
+    /* Observa a TABELA, e nao a caixa: quando as linhas chegam da API, a caixa
+       mantem o tamanho e so o conteudo cresce. */
+    const observador = new ResizeObserver(medir);
+    observador.observe(caixa);
+    if (tabela) observador.observe(tabela);
+    return () => {
+      caixa.removeEventListener('scroll', medir);
+      observador.disconnect();
+    };
+  }, []);
+
+  const rola = sobra.antes || sobra.depois;
+
   return (
-    <div className="overflow-x-auto">
-      <table
-        style={larguraMinima ? { minWidth: larguraMinima } : undefined}
-        className="w-full border-collapse text-sm"
+    <div className="relative">
+      <div
+        ref={referencia}
+        className="overflow-x-auto"
+        role={rola ? 'region' : undefined}
+        aria-label={rola ? `${rotulo}, rola na horizontal` : undefined}
+        tabIndex={rola ? 0 : undefined}
       >
-        <caption className="sr-only">{rotulo}</caption>
-        {children}
-      </table>
+        <table
+          style={larguraMinima ? { minWidth: larguraMinima } : undefined}
+          className="w-full border-collapse text-sm"
+        >
+          <caption className="sr-only">{rotulo}</caption>
+          {children}
+        </table>
+      </div>
+
+      {sobra.antes && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[var(--color-superficie-alta)] to-transparent"
+        />
+      )}
+      {sobra.depois && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--color-superficie-alta)] to-transparent"
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Data em cima, hora embaixo.
+ *
+ * `03/08/2026 as 10:11` numa linha so custa 11.5rem de coluna. Quebrado em duas
+ * linhas custa 7.5rem e nao perde nada: a hora continua na tela, nao foi para o
+ * `title` nem para o detalhe.
+ *
+ * `ehSomenteData` esta no caminho porque coluna `@db.Date` nao tem hora. Formatar
+ * dia civil como instante produziria "00:00", uma hora que ninguem registrou.
+ */
+export function DataEmDuasLinhas({ iso }: { iso: string }) {
+  return (
+    <>
+      <span className="block">{formatarData(iso)}</span>
+      {!ehSomenteData(iso) && (
+        <span className="block text-xs text-[var(--color-texto-fraco)]">
+          {formatarHora(iso)}
+        </span>
+      )}
+    </>
   );
 }
 
