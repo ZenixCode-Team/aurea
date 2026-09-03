@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { juntar } from "@/componentes/sistema/primitivos";
 
 const NAVEGACAO = [
   { href: "#funcionamento", rotulo: "Como funciona" },
@@ -49,11 +50,16 @@ export function Cabecalho() {
             A marca mora DENTRO. Fora dela, flutuava nua sobre o conteúdo que passa por
             baixo do cabeçalho fixo: na primeira seção o filete de divisão cortava o
             wordmark ao meio. */}
-        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/40 bg-white/45 p-1.5 pl-5 shadow-[var(--sombra-elevada)] backdrop-blur-2xl backdrop-saturate-150">
+        {/* O padding assimétrico (`p-1.5 pl-5`) existe para acomodar a navegação à
+            direita do wordmark. Abaixo de `lg` não há navegação nenhuma dentro da
+            cápsula, e o mesmo padding deixava a peça visivelmente torta: muito espaço
+            à esquerda, quase nenhum à direita. No celular ela volta a ser simétrica e
+            ganha a mesma altura do "Entrar" ao lado. */}
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/40 bg-white/45 px-5 py-2.5 shadow-[var(--sombra-elevada)] backdrop-blur-2xl backdrop-saturate-150 lg:p-1.5 lg:pl-5">
           <Link
             href="/"
             aria-label="AUREA, início"
-            className="display mr-2 text-2xl leading-none text-tinta"
+            className="display text-2xl leading-none text-tinta lg:mr-2"
           >
             aurea
           </Link>
@@ -88,7 +94,7 @@ export function Cabecalho() {
         <div className="flex justify-end">
           <Link
             href="/entrar"
-            className="pointer-events-auto rounded-full border border-white/50 bg-white/70 px-7 py-3 text-[0.9375rem] font-semibold leading-none text-tinta shadow-[var(--sombra-elevada)] backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 hover:bg-white/90"
+            className="pointer-events-auto rounded-full border border-white/50 bg-white/70 px-6 py-2.5 text-[0.9375rem] font-semibold leading-none text-tinta shadow-[var(--sombra-elevada)] backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 hover:bg-white/90 lg:px-7 lg:py-3"
           >
             Entrar
           </Link>
@@ -105,20 +111,35 @@ export function Cabecalho() {
           `overflow-x-auto` resolvendo o espaço que a cápsula não tem. Barra
           de rolagem escondida porque o scroll aqui é affordance de toque
           (like tabs), não de leitura de conteúdo longo. */}
-      <nav
-        aria-label="Seções da página"
-        className="pointer-events-auto mx-auto mt-2 flex w-full max-w-[1180px] gap-2 overflow-x-auto px-6 [scrollbar-width:none] md:px-10 lg:hidden [&::-webkit-scrollbar]:hidden"
-      >
-        {NAVEGACAO.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="rotulo-editorial shrink-0 whitespace-nowrap rounded-full border border-white/35 bg-white/30 px-3 py-1.5 text-tinta backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 hover:bg-white/50"
-          >
-            {item.rotulo}
-          </a>
-        ))}
-      </nav>
+      {/* A tira rola, e precisa PARECER que rola.
+
+          Sem o desvanecimento à direita, a última pílula aparecia cortada em seco na
+          borda e a tira lia como layout quebrado, não como conteúdo que continua. O
+          `mask-image` resolve sem ocupar espaço nem exigir um elemento por cima que
+          bloquearia o toque. O respiro final (`after:`) garante que a última pílula
+          não encosta na borda quando a rolagem termina. */}
+      <div className="pointer-events-none relative mt-2.5 lg:hidden">
+        <nav
+          aria-label="Seções da página"
+          className={juntar(
+            'pointer-events-auto mx-auto flex w-full max-w-[1180px] gap-2 overflow-x-auto',
+            'px-6 [scrollbar-width:none] md:px-10 [&::-webkit-scrollbar]:hidden',
+            'snap-x snap-mandatory scroll-px-6',
+            'after:block after:w-2 after:shrink-0 after:content-[""]',
+            '[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]',
+          )}
+        >
+          {NAVEGACAO.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="rotulo-editorial shrink-0 snap-start whitespace-nowrap rounded-full border border-white/35 bg-white/30 px-3.5 py-2 text-tinta backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 hover:bg-white/50"
+            >
+              {item.rotulo}
+            </a>
+          ))}
+        </nav>
+      </div>
     </header>
   );
 }
