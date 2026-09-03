@@ -26,8 +26,53 @@ import {
   juntar,
 } from '@/componentes/sistema/primitivos';
 import { ErroDaFonte, buscarPacientesDoDia } from '@/sistema/fonte';
-import { PESO_DA_SITUACAO, ROTULO_DA_SITUACAO } from '@/sistema/formato';
-import type { CartaoDoPainel, PacientesDoDia, SituacaoNoPainel } from '@/sistema/tipos';
+import { ROTULO_DA_SITUACAO } from '@/sistema/formato';
+import {
+  ROTULO_DA_FAIXA,
+  ROTULO_DO_NIVEL,
+  ROTULO_DO_NIVEL_DE_RISCO,
+  faixaDeSilencioDe,
+  nivelDePrioridade,
+  resumirSilencio,
+  type NivelDePrioridade,
+} from '@aurea/contratos';
+import type {
+  CartaoDoPainel,
+  PacientesDoDia,
+  ResultadoDaEstratificacao,
+  SituacaoNoPainel,
+} from '@/sistema/tipos';
+
+const NIVEIS: readonly NivelDePrioridade[] = ['ALTA', 'INTERMEDIARIA', 'BAIXA'];
+
+/**
+ * Cor do grupo de prioridade.
+ *
+ * Reusa os tokens da escala, e isso é legítimo aqui e só aqui: o agrupamento É a
+ * gravidade clínica, não decoração. A lei inviolável 1 proíbe a cor sem significado,
+ * não a cor no lugar onde ela significa exatamente o que diz.
+ */
+const COR_DO_NIVEL: Record<NivelDePrioridade, string> = {
+  ALTA: 'var(--color-risco-vermelho)',
+  INTERMEDIARIA: 'var(--color-risco-amarelo)',
+  BAIXA: 'var(--color-risco-verde)',
+};
+
+/**
+ * O nível do cartão, com queda para cálculo local.
+ *
+ * A API manda pronto. O espelho sintético não manda, e recalcular no cliente é o que
+ * mantém a tela honesta nos dois modos em vez de mostrar tudo como baixa prioridade
+ * durante uma demonstração.
+ */
+function nivelDoCartao(cartao: CartaoDoPainel): NivelDePrioridade {
+  if (cartao.nivelDePrioridade) return cartao.nivelDePrioridade;
+  return nivelDePrioridade(
+    cartao.situacao === 'NAO_CLASSIFICADA' ? 'SEM_CLASSIFICACAO' : cartao.situacao,
+    cartao.faixaDeSilencio ??
+      faixaDeSilencioDe(cartao.diasSemResponder, cartao.nuncaRespondeu),
+  );
+}
 
 /** Ordem e cor de cada faixa da escala. Único lugar da tela onde a cor significa algo. */
 const FAIXAS = [
@@ -75,13 +120,23 @@ export default function PaginaDePacientesDoDia() {
     };
   }, []);
 
+  /* A ordem vem pronta da API, de `ordenarFilaDePrioridades`. Reordenar aqui seria um
+     segundo critério competindo com o primeiro — foi assim que a tarefa 072 produziu
+     prontuário divergindo da lista. */
   const lista = useMemo(() => {
     if (!dados) return [];
-    const filtrados = filtro ? dados.cards.filter((c) => c.situacao === filtro) : dados.cards;
-    return [...filtrados].sort(
-      (a, b) => PESO_DA_SITUACAO[a.situacao] - PESO_DA_SITUACAO[b.situacao],
-    );
+    return filtro ? dados.cards.filter((c) => c.situacao === filtro) : dados.cards;
   }, [dados, filtro]);
+
+  /** A fila dos prints: três grupos, cada um mantendo a ordem que a API definiu. */
+  const grupos = useMemo(
+    () =>
+      NIVEIS.map((nivel) => ({
+        nivel,
+        cartoes: lista.filter((cartao) => nivelDoCartao(cartao) === nivel),
+      })).filter((grupo) => grupo.cartoes.length > 0),
+    [lista],
+  );
 
   const emFoco = useMemo(
     () => lista.find((c) => c.pacienteId === selecionado) ?? lista[0] ?? null,
@@ -105,7 +160,7 @@ export default function PaginaDePacientesDoDia() {
         A contagem que importa vem por extenso e grande: quem abre esta tela quer saber,
         antes de qualquer coisa, se tem alguém precisando dela agora.
       */}
-      <header className="relative mb-5 overflow-hidden rounded-[var(--radius-amplo)] bg-[var(--color-verde-profundo)] shadow-[var(--sombra-elevada)]">
+      <header className="relative mb-5 overflow-hidden rounded-[var(--radius-amplo)] bg-[var(--color-azul-profundo)] shadow-[var(--sombra-elevada)]">
         <GradienteAnimado config={{ preset: 'Aurea', speed: 5 }} />
         <div className="grain absolute inset-0" />
         {/* Véu fixo: o campo deriva, e texto creme precisa de contraste garantido em
@@ -222,6 +277,8 @@ export default function PaginaDePacientesDoDia() {
 
           </div>
 
+          <AlertaDeSilencio dados={dados} />
+
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             {/* Lista densa */}
             <div className="overflow-hidden rounded-[var(--radius-amplo)] border border-[var(--color-borda)] bg-[var(--color-superficie-alta)] shadow-[var(--sombra-cartao)]">
@@ -234,7 +291,27 @@ export default function PaginaDePacientesDoDia() {
                 </div>
               ) : (
                 <ul>
-                  {lista.map((cartao) => {
+                  {grupos.flatMap((grupo) => [
+                    /* Cabeçalho do grupo. Fica no fluxo da mesma lista, e não em três
+                       listas separadas: a enfermagem varre a coluna de cima a baixo
+                       uma vez só, e três caixas fariam ela varrer três vezes. */
+                    <li
+                      key={`cabecalho-${grupo.nivel}`}
+                      className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-borda)] bg-[var(--color-superficie-baixa)] px-4 py-1.5"
+                    >
+                      <span
+                        aria-hidden
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: COR_DO_NIVEL[grupo.nivel] }}
+                      />
+                      <span className="rotulo text-[var(--color-texto-suave)]">
+                        {ROTULO_DO_NIVEL[grupo.nivel]}
+                      </span>
+                      <span className="ml-auto font-mono text-xs tabular-nums text-[var(--color-texto-fraco)]">
+                        {grupo.cartoes.length}
+                      </span>
+                    </li>,
+                    ...grupo.cartoes.map((cartao) => {
                     const ativo = emFoco?.pacienteId === cartao.pacienteId;
                     return (
                       <li key={cartao.pacienteId}>
@@ -266,9 +343,39 @@ export default function PaginaDePacientesDoDia() {
                               {cartao.nome}
                             </span>
                             <span className="block truncate text-xs text-[var(--color-texto-fraco)]">
-                              {textoDoEstado(cartao)}
+                              {/* O primeiro motivo no lugar do estado genérico: entre
+                                  "Respondeu hoje" e "Febre de 38,9 graus", quem está de
+                                  plantão precisa do segundo. O estado continua legível
+                                  no selo à direita. */}
+                              {cartao.motivos?.[0]?.texto ?? textoDoEstado(cartao)}
                             </span>
                           </span>
+                          {/* Marcador de estratificação (bloco 2). Ponto, não pílula:
+                              a pílula à direita é da classificação clínica, e dois
+                              selos do mesmo peso na mesma linha fariam a equipe
+                              confundir risco de contexto com risco de sintoma. */}
+                          {cartao.risco && (
+                            <span
+                              className="shrink-0"
+                              title={`${ROTULO_DO_NIVEL_DE_RISCO[cartao.risco.nivel]} · ${cartao.risco.pontuacao} pontos · critério em rascunho`}
+                            >
+                              <span
+                                aria-hidden
+                                className="block h-2 w-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    cartao.risco.nivel === 'ALTO'
+                                      ? 'var(--color-dado-5)'
+                                      : cartao.risco.nivel === 'MEDIO'
+                                        ? 'var(--color-dado-4)'
+                                        : 'var(--color-dado-neutro)',
+                                }}
+                              />
+                              <span className="sr-only">
+                                {ROTULO_DO_NIVEL_DE_RISCO[cartao.risco.nivel]}
+                              </span>
+                            </span>
+                          )}
                           <span className="shrink-0 font-mono text-xs tabular-nums text-[var(--color-texto-fraco)]">
                             {cartao.diaDoCiclo != null ? `D${cartao.diaDoCiclo}` : 'sem dia'}
                           </span>
@@ -276,7 +383,8 @@ export default function PaginaDePacientesDoDia() {
                         </button>
                       </li>
                     );
-                  })}
+                    }),
+                  ])}
                 </ul>
               )}
             </div>
@@ -352,6 +460,152 @@ function BotaoDaFaixa({
  * o que não veio de `/painel/pacientes-do-dia` não aparece aqui — quem quiser o
  * detalhe clínico abre o histórico, onde ele existe de verdade.
  */
+/**
+ * Bloco 3 dos prints — o alerta de silêncio.
+ *
+ * A frase que justifica a existência deste bloco está no próprio print: ausência de
+ * resposta não é ausência de necessidade. Internação, celular sem bateria e piora
+ * sozinha em casa produzem exatamente o mesmo silêncio, e nenhuma delas é boa notícia.
+ *
+ * NÃO usa a cor da escala. As faixas de tempo não são classificação clínica: quem está
+ * calado há 72 horas não foi classificado como vermelho, foi apenas não classificado.
+ * Pintar de vermelho aqui inventaria uma gravidade que ninguém mediu, e é a mesma
+ * razão pela qual o motor devolve estado próprio para o silêncio em vez de verde.
+ */
+function AlertaDeSilencio({ dados }: { dados: PacientesDoDia }) {
+  const silencio =
+    dados.silencio ??
+    /* Espelho sintético e API antiga não mandam o resumo. Contar aqui mantém o bloco
+       verdadeiro nos dois modos. */
+    resumirSilencio(
+      dados.cards.map((cartao) => ({
+        pacienteId: cartao.pacienteId,
+        nome: cartao.nome,
+        situacao:
+          cartao.situacao === 'NAO_CLASSIFICADA' ? 'SEM_CLASSIFICACAO' : cartao.situacao,
+        diasSemResponder: cartao.diasSemResponder,
+        nuncaRespondeu: cartao.nuncaRespondeu,
+      })),
+    );
+
+  if (silencio.total === 0) return null;
+
+  const faixas = [
+    { chave: 'UM_DIA' as const, quantos: silencio.umDia },
+    { chave: 'DOIS_DIAS' as const, quantos: silencio.doisDias },
+    { chave: 'TRES_DIAS' as const, quantos: silencio.tresDias },
+    { chave: 'UMA_SEMANA' as const, quantos: silencio.umaSemana },
+    { chave: 'NUNCA_RESPONDEU' as const, quantos: silencio.nuncaRespondeu },
+  ].filter((faixa) => faixa.quantos > 0);
+
+  return (
+    <div className="mb-4 rounded-[var(--radius-amplo)] border border-[var(--color-borda)] bg-[var(--color-superficie-alta)] p-5 shadow-[var(--sombra-cartao)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="rotulo text-[var(--color-texto-suave)]">Alerta de silêncio</p>
+          <p className="mt-1.5 text-sm text-[var(--color-texto-suave)]">
+            {silencio.total === 1
+              ? '1 paciente não respondeu.'
+              : `${silencio.total} pacientes não responderam.`}{' '}
+            Ausência de resposta não é ausência de necessidade.
+          </p>
+        </div>
+      </div>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {faixas.map((faixa) => (
+          <div
+            key={faixa.chave}
+            className="rounded-[var(--radius-sistema)] bg-[var(--color-superficie-baixa)] px-3.5 py-3"
+          >
+            <dd className="font-mono text-2xl tabular-nums leading-none text-[var(--color-texto)]">
+              {faixa.quantos}
+            </dd>
+            <dt className="mt-1.5 text-xs leading-snug text-[var(--color-texto-fraco)]">
+              {ROTULO_DA_FAIXA[faixa.chave]}
+            </dt>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/**
+ * Blocos 2 e 8 — a estratificação, decomposta.
+ *
+ * Mostra os FATORES e não só o total. Um número de 0 a 15 sem decomposição é
+ * caixa-preta, e o mesmo argumento que obriga o prontuário a exibir a regra que
+ * classificou o sintoma obriga esta tela a dizer o que compôs o risco. Quem discorda
+ * precisa conseguir apontar qual linha está errada.
+ *
+ * O selo de rascunho não é enfeite: enquanto `validadoClinicamente` for falso, nenhum
+ * profissional pode tomar esse número por critério do serviço.
+ */
+function BlocoDeRisco({ risco }: { risco: ResultadoDaEstratificacao }) {
+  const cor =
+    risco.nivel === 'ALTO'
+      ? 'var(--color-dado-5)'
+      : risco.nivel === 'MEDIO'
+        ? 'var(--color-dado-4)'
+        : 'var(--color-dado-neutro)';
+
+  return (
+    <div className="border-t border-[var(--color-borda)] px-5 py-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: cor }}
+          />
+          <span className="text-sm font-medium text-[var(--color-texto)]">
+            {ROTULO_DO_NIVEL_DE_RISCO[risco.nivel]}
+          </span>
+        </span>
+        <span className="font-mono text-sm tabular-nums text-[var(--color-texto-suave)]">
+          {risco.pontuacao} {risco.pontuacao === 1 ? 'ponto' : 'pontos'}
+        </span>
+      </div>
+
+      {!risco.validadoClinicamente && (
+        <p className="mt-2 rounded-[var(--radius-sistema)] bg-[var(--color-superficie-baixa)] px-3 py-2 text-xs leading-relaxed text-[var(--color-texto-suave)]">
+          Critério em rascunho ({risco.versaoDosPesos}), ainda não validado
+          clinicamente. Serve para ordenar trabalho e não substitui julgamento.
+        </p>
+      )}
+
+      {risco.fatores.length > 0 ? (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {risco.fatores.map((fator) => (
+            <li
+              key={`${fator.categoria}-${fator.descricao}`}
+              className="flex items-baseline justify-between gap-3 text-xs"
+            >
+              <span className="text-[var(--color-texto-suave)]">{fator.descricao}</span>
+              <span className="shrink-0 font-mono tabular-nums text-[var(--color-texto-fraco)]">
+                +{fator.pontos}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-[var(--color-texto-fraco)]">
+          Nenhum fator de risco registrado.
+        </p>
+      )}
+
+      {!risco.baseSuficiente && (
+        <p className="mt-3 text-xs leading-relaxed text-[var(--color-texto-fraco)]">
+          Sem ECOG ou sem avaliação de contexto social no cadastro. O que falta não
+          aparece acima porque não foi perguntado, e não porque a resposta seja
+          negativa.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PainelDeDetalhe({ cartao }: { cartao: CartaoDoPainel }) {
   const router = useRouter();
   const destino = `/painel/pacientes/${cartao.pacienteId}`;
@@ -395,6 +649,8 @@ function PainelDeDetalhe({ cartao }: { cartao: CartaoDoPainel }) {
           </div>
         ))}
       </dl>
+
+      {cartao.risco && <BlocoDeRisco risco={cartao.risco} />}
 
       <div className="flex flex-col gap-2 border-t border-[var(--color-borda)] px-5 py-4">
         <LinkComoBotao href={destino} tamanho="amplo">
