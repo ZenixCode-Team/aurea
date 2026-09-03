@@ -14,12 +14,14 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Guarda } from '@/componentes/sistema/guarda';
+import Link from 'next/link';
 import {
   AcaoDoTopo,
+  Icone,
   ShellDePainel,
   type SecaoDeNavegacao,
 } from '@/componentes/sistema/painel';
-import { Botao } from '@/componentes/sistema/primitivos';
+import { Botao, juntar } from '@/componentes/sistema/primitivos';
 import { useSessao } from '@/sistema/sessao';
 
 const SECOES: readonly SecaoDeNavegacao[] = [
@@ -41,6 +43,26 @@ const SECOES: readonly SecaoDeNavegacao[] = [
   },
 ];
 
+/**
+ * Os cinco destinos que cabem no polegar.
+ *
+ * A lateral tem oito itens; a barra do celular tem cinco, porque seis alvos numa
+ * largura de 390px produzem toque de 60px e erro de dedo. Os que ficaram de fora
+ * (todos os pacientes, solicitações, conta) continuam alcançáveis pela lateral, que
+ * reaparece a partir de `lg`.
+ *
+ * `rotuloCurto` existe porque "Solicitações de contato" não cabe embaixo de um ícone
+ * de 24px. O rótulo inteiro continua no `aria-label`: quem usa leitor de tela ouve o
+ * nome completo, não a abreviação que existe só por causa de pixel.
+ */
+const DESTINOS_NO_POLEGAR = [
+  { href: '/painel', rotulo: 'Pacientes do dia', rotuloCurto: 'Plantão', icone: 'pacientes' as const },
+  { href: '/painel/cadeiras', rotulo: 'Giro de cadeiras', rotuloCurto: 'Cadeiras', icone: 'pacientes' as const },
+  { href: '/painel/intervencoes', rotulo: 'Intervenções', rotuloCurto: 'Condutas', icone: 'contato' as const },
+  { href: '/painel/toxicidade', rotulo: 'Toxicidade', rotuloCurto: 'Sintomas', icone: 'cadastro' as const },
+  { href: '/painel/navegacao', rotulo: 'Navegação', rotuloCurto: 'Operação', icone: 'cadastro' as const },
+] as const;
+
 export default function LayoutDoPainel({ children }: { children: React.ReactNode }) {
   const caminho = usePathname();
   const { usuario, sair } = useSessao();
@@ -58,6 +80,42 @@ export default function LayoutDoPainel({ children }: { children: React.ReactNode
         contexto="Plantão"
         secoes={SECOES}
         caminhoAtual={caminho}
+        barraInferior={
+          <nav
+            aria-label="Navegação do plantão"
+            className="border-t border-[var(--color-borda)] bg-[var(--color-superficie-alta)] pb-[env(safe-area-inset-bottom)]"
+          >
+            <ul className="grid grid-cols-5">
+              {DESTINOS_NO_POLEGAR.map((destino) => {
+                /* `/painel` casaria com tudo se comparado por prefixo. */
+                const ativo =
+                  destino.href === '/painel'
+                    ? caminho === '/painel'
+                    : caminho.startsWith(destino.href);
+
+                return (
+                  <li key={destino.href}>
+                    <Link
+                      href={destino.href}
+                      aria-label={destino.rotulo}
+                      aria-current={ativo ? 'page' : undefined}
+                      className={juntar(
+                        'flex flex-col items-center gap-1 rounded-[0.625rem] px-0.5 py-2 text-[0.6875rem]',
+                        'transition-colors duration-150',
+                        ativo
+                          ? 'bg-[var(--color-nav-ativo)] font-medium text-[var(--color-texto)]'
+                          : 'text-[var(--color-texto-fraco)]',
+                      )}
+                    >
+                      <Icone nome={destino.icone} />
+                      <span className="max-w-full truncate">{destino.rotuloCurto}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        }
         /* A única ação do topo é um atalho para a fila de contatos. A ref tem três
            botões redondos; dois deles aqui não teriam destino. */
         acoes={

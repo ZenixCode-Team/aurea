@@ -136,7 +136,7 @@ function ConteudoDeEntrar() {
                 {/* A mensagem continua única por decisão de segurança (não revelar se o
                     usuário existe), mas "não conferem" sozinho deixa a pessoa sem próximo
                     passo — o link aponta pra ele sem abrir exceção nenhuma na mensagem. */}
-                <Link href="/entrar/recuperar" className="underline underline-offset-2">
+                <Link href="/entrar/recuperar" className="inline-block py-2 underline underline-offset-2">
                   Recuperar acesso
                 </Link>
               </Aviso>
@@ -173,7 +173,9 @@ function ConteudoDeEntrar() {
             Esqueceu a senha?{' '}
             <Link
               href="/entrar/recuperar"
-              className="text-[var(--color-texto)] underline underline-offset-2"
+              /* `inline-block` com padding vertical: o alvo de toque cresce sem
+                 empurrar a linha de texto que o contém. */
+              className="inline-block py-2 text-[var(--color-texto)] underline underline-offset-2"
             >
               Recuperar acesso
             </Link>
@@ -188,7 +190,11 @@ function ConteudoDeEntrar() {
               <p className="mt-2 text-xs leading-relaxed text-[var(--color-texto-suave)]">
                 Os dados deste ambiente são sintéticos; nenhum pertence a paciente real.
               </p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              {/* Uma coluna no celular, três a partir de `sm`.
+                  Três botões lado a lado em 390px dão 29px de altura e ~100px de
+                  largura — abaixo do alvo de toque confortável, e são justamente os
+                  botões que quem chega por QR code aperta primeiro. */}
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {(
                   [
                     ['paciente', 'Paciente'],
@@ -200,7 +206,6 @@ function ConteudoDeEntrar() {
                     key={chave}
                     type="button"
                     variante="secundario"
-                    tamanho="compacto"
                     disabled={enviando}
                     onClick={() => entrarComo(chave)}
                   >
