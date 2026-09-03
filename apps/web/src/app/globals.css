@@ -257,6 +257,26 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Entrada da manchete da hero — CSS puro, de propósito.
+   O título é conteúdo essencial: não pode ficar refém do bundle de JS
+   carregar e hidratar a tempo (ou carregar de jeito nenhum). Ver o
+   comentário em `hero.tsx` (`LinhaHero`) para a motivação completa.
+   `both` mantém o quadro inicial (deslocado) durante o atraso do stagger
+   e o quadro final (visível) depois que a animação termina — sem JS
+   nenhum envolvido em nenhuma das duas pontas. */
+@keyframes hero-linha-entrada {
+  from {
+    transform: translateY(108%);
+  }
+  to {
+    transform: translateY(0%);
+  }
+}
+
+.hero-linha-entrada {
+  animation: hero-linha-entrada 1.25s var(--ease-saida) both;
+}
+
 /* Grain: textura fina por cima do WebGL e das fotos, para craft.
    Gerado por SVG inline — zero request de rede. */
 .grain::after {
@@ -283,5 +303,15 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* A regra acima já reduz a duração a quase zero, mas o atraso do stagger
+     (`animation-delay`, via `style` inline em cada linha) continua de pé e
+     prende o texto fora da máscara por até ~0,4s. Zerando a animação aqui,
+     a manchete nasce direto no estado final: sem deslocamento perceptível
+     nenhum, do jeito que quem tem sensibilidade vestibular precisa. */
+  .hero-linha-entrada {
+    animation: none;
+    transform: none;
   }
 }

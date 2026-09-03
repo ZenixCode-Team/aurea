@@ -184,19 +184,27 @@ function LinhaHero({
   filete?: "antes" | "depois";
   aoTerminar?: () => void;
 }) {
+  // A entrada da manchete usa @keyframes em CSS puro (ver globals.css), não
+  // framer-motion. Diferença que importa: `initial={{ y: "108%" }}` do
+  // framer-motion grava esse deslocamento como `style` inline já no HTML
+  // vindo do servidor, e só o JS hidratado o reverte. Se o bundle falhar ou
+  // atrasar, a manchete (conteúdo essencial) fica presa fora da máscara,
+  // invisível, para sempre. Com `@keyframes` o navegador toca a animação
+  // sozinho, sem depender de script algum, e o `animation-fill-mode: both`
+  // garante que o estado de repouso final seja visível mesmo sem JS.
+  // `onAnimationEnd` é DOM nativo — dispara também para animação CSS e segue
+  // acionando `aoTerminar`, que remove a máscara para o blend do halo.
   const texto = revelado ? (
     <span className="block whitespace-nowrap">{children}</span>
   ) : (
     <span className="block overflow-hidden">
-      <motion.span
-        className="block whitespace-nowrap"
-        initial={{ y: "108%" }}
-        animate={{ y: "0%" }}
-        transition={{ duration: 1.25, delay: atraso, ease: [0.16, 1, 0.3, 1] }}
-        onAnimationComplete={aoTerminar}
+      <span
+        className="hero-linha-entrada block whitespace-nowrap"
+        style={{ animationDelay: `${atraso}s` }}
+        onAnimationEnd={aoTerminar}
       >
         {children}
-      </motion.span>
+      </span>
     </span>
   );
 

@@ -13,6 +13,10 @@ const PORTAS = [
   {
     perfil: "Paciente",
     entrada: "Entra com CPF",
+    // CTA do rodapé do cartão repetia "Entrar" nos três, sem dizer como.
+    // Aqui ele carrega a mesma informação do rótulo de cima, mas na hora da
+    // ação — é o texto que a pessoa lê com o dedo já no clique.
+    cta: "Entrar com CPF",
     corpo:
       "Responde como está hoje, recebe a orientação e acompanha o que já contou nos dias anteriores.",
     href: "/entrar?perfil=paciente",
@@ -20,6 +24,7 @@ const PORTAS = [
   {
     perfil: "Enfermagem",
     entrada: "Entra com e-mail",
+    cta: "Entrar com e-mail",
     corpo:
       "Vê quem precisa de atenção hoje, abre o histórico do paciente e anota o contato que fez.",
     href: "/entrar?perfil=enfermagem",
@@ -27,6 +32,7 @@ const PORTAS = [
   {
     perfil: "Coordenação",
     entrada: "Entra com e-mail",
+    cta: "Entrar com e-mail",
     corpo:
       "Mantém os protocolos, as orientações e os critérios que definem cada cor no serviço.",
     href: "/entrar?perfil=admin",
@@ -66,7 +72,7 @@ export function Portas() {
             </div>
 
             <span className="rotulo-editorial mt-10 inline-flex items-center gap-2 text-tinta">
-              Entrar
+              {porta.cta}
               <span
                 aria-hidden="true"
                 className="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-1"

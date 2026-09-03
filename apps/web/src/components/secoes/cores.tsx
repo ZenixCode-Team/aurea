@@ -170,7 +170,11 @@ export function CorAmbar() {
         rotulo: "escuro",
         titulo: "text-tinta",
         texto: "text-tinta",
-        textoSuave: "text-tinta/75",
+        /* `/75` sobre o âmbar (#e8a33d) cai para ~4,5:1, no limiar da AA e
+           sensível a antialiasing de fonte. `/90` sobe para ~6,3:1 mantendo
+           o fundo da seção intocado (é a própria escala de triagem,
+           imprint aprovado) e ainda lê mais claro que `classes.texto`. */
+        textoSuave: "text-tinta/90",
         divisor: "border-tinta/25",
       }}
       etapas={[

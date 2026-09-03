@@ -94,6 +94,31 @@ export function Cabecalho() {
           </Link>
         </div>
       </div>
+
+      {/* Acesso às seções no mobile.
+
+          Abaixo de `lg` a navegação some da cápsula (ver comentário acima) e
+          sobra só rolagem, mas a landing tem 11 seções: sem atalho, achar
+          "Limites" ou "Perguntas" de novo é rolar às cegas. A solução não é
+          reabrir a navegação inteira nem inventar hambúrguer com painel: é
+          uma tira horizontal, discreta, dos mesmos rótulos, com o próprio
+          `overflow-x-auto` resolvendo o espaço que a cápsula não tem. Barra
+          de rolagem escondida porque o scroll aqui é affordance de toque
+          (like tabs), não de leitura de conteúdo longo. */}
+      <nav
+        aria-label="Seções da página"
+        className="pointer-events-auto mx-auto mt-2 flex w-full max-w-[1180px] gap-2 overflow-x-auto px-6 [scrollbar-width:none] md:px-10 lg:hidden [&::-webkit-scrollbar]:hidden"
+      >
+        {NAVEGACAO.map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="rotulo-editorial shrink-0 whitespace-nowrap rounded-full border border-white/35 bg-white/30 px-3 py-1.5 text-tinta backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 hover:bg-white/50"
+          >
+            {item.rotulo}
+          </a>
+        ))}
+      </nav>
     </header>
   );
 }
