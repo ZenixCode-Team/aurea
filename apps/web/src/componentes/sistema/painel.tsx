@@ -168,6 +168,7 @@ export function CartaoDeIndicador({
   valor,
   apoio,
   tom = 'neutro',
+  formato = 'medida',
   selecionado = false,
   aoClicar,
 }: {
@@ -175,6 +176,19 @@ export function CartaoDeIndicador({
   valor: number | string;
   apoio?: string;
   tom?: 'neutro' | 'verde' | 'amarelo' | 'vermelho' | 'silencio';
+  /**
+   * `medida` e quantidade: 14 regras, 3 pacientes, 2h30 de espera. Pede corpo grande
+   * e `tabular-nums`, porque a pessoa compara numeros entre cartoes.
+   *
+   * `texto` e nome: `rascunho-0`, `03/08/2026 as 10:11`, `Publicado`. No corpo de
+   * 36px um nome estoura a coluna e quebra em duas linhas coladas, porque
+   * `leading-none` foi desenhado para uma linha so. Foi assim que `rascunho-0` virou
+   * `rascunho-` em cima de `0` na tela de conjuntos.
+   *
+   * Quem chama declara. Adivinhar pelo tipo do valor daria errado: `formatarDuracao`
+   * devolve string e continua sendo medida.
+   */
+  formato?: 'medida' | 'texto';
   selecionado?: boolean;
   aoClicar?(): void;
 }) {
@@ -186,17 +200,19 @@ export function CartaoDeIndicador({
     silencio: 'text-[var(--color-risco-silencio)]',
   }[tom];
 
+  const estiloDoValor =
+    formato === 'medida'
+      ? 'text-[2.25rem] font-semibold leading-none tracking-[-0.02em] tabular-nums'
+      : 'text-[1.125rem] font-medium leading-snug tracking-[-0.01em] break-words';
+
   const conteudo = (
     <>
       <span className="text-sm font-medium text-[var(--color-texto-suave)]">{rotulo}</span>
-      <span
-        className={juntar(
-          'mt-3 block text-[2.25rem] font-semibold leading-none tracking-[-0.02em] tabular-nums',
-          corDoValor,
-        )}
-      >
-        {valor}
-      </span>
+      {/* `mt-auto` ancora todos os valores na base do cartao. Sem isso, um rotulo que
+          quebra em duas linhas empurra o valor para baixo e a fileira inteira perde a
+          linha de leitura: foi o que "Aguardam validacao clinica" fez com os tres
+          cartoes ao lado dele. */}
+      <span className={juntar('mt-auto block pt-3', estiloDoValor, corDoValor)}>{valor}</span>
       <span className="mt-3 block text-xs text-[var(--color-texto-fraco)]">
         {apoio ?? ' '}
       </span>
@@ -204,7 +220,7 @@ export function CartaoDeIndicador({
   );
 
   const estilo = juntar(
-    'flex flex-col border-r border-b border-[var(--color-borda)] px-5 py-5 text-left',
+    'flex h-full flex-col border-r border-b border-[var(--color-borda)] px-5 py-5 text-left',
     'transition-colors duration-150',
     selecionado ? 'bg-[var(--color-superficie-baixa)]' : 'bg-[var(--color-superficie-alta)]',
     aoClicar && !selecionado && 'hover:bg-[var(--color-superficie-baixa)]',
